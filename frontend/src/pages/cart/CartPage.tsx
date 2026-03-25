@@ -62,7 +62,7 @@ export default function CartPage() {
 
         {/* Summary */}
         <div className="bg-primary-50 p-6 h-fit">
-          <h3 className="font-medium mb-4">Tóm tắt</h3>
+          <h3 className="font-medium mb-4">{t('cart.summary')}</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span>{t('cart.subtotal')}</span>
@@ -70,7 +70,7 @@ export default function CartPage() {
             </div>
             <div className="flex justify-between">
               <span>{t('cart.shipping')}</span>
-              <span>Miễn phí</span>
+              <span>{t('common.free')}</span>
             </div>
             <div className="border-t border-primary-200 pt-2 flex justify-between font-medium">
               <span>{t('cart.total')}</span>

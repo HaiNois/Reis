@@ -9,7 +9,9 @@
     "add": "Thêm",
     "search": "Tìm kiếm",
     "viewAll": "Xem tất cả",
-    "viewMore": "Xem thêm"
+    "viewMore": "Xem thêm",
+    "home": "Trang chủ",
+    "free": "Miễn phí"
   },
   "header": {
     "home": "Trang chủ",
@@ -52,7 +54,31 @@
     "newArrivals": "Hàng mới về",
     "bestSellers": "Bán chạy",
     "shopNow": "Mua ngay",
-    "viewCollection": "Xem bộ sưu tập"
+    "viewCollection": "Xem bộ sưu tập",
+    "newSeason": "Mùa mới",
+    "women": "Nữ",
+    "accessories": "Phụ kiện"
+  },
+  "catalog": {
+    "allProducts": "Tất cả sản phẩm",
+    "productsCount": "{count} sản phẩm",
+    "newest": "Mới nhất",
+    "priceAsc": "Giá: Thấp đến cao",
+    "priceDesc": "Giá: Cao đến thấp",
+    "popular": "Bán chạy",
+    "categories": {
+      "all": "Tất cả",
+      "shirt": "Áo",
+      "pants": "Quần",
+      "dress": "Váy",
+      "outer": "Áo khoác"
+    }
+  },
+  "success": {
+    "title": "Đặt hàng thành công!",
+    "message": "Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.",
+    "continueShopping": "Tiếp tục mua sắm",
+    "viewOrder": "Xem đơn hàng"
   },
   "product": {
     "addToCart": "Thêm vào giỏ",
@@ -67,7 +93,11 @@
     "careGuide": "Hướng dẫn bảo quản",
     "relatedProducts": "Sản phẩm liên quan",
     "outOfStock": "Hết hàng",
-    "inStock": "Còn hàng"
+    "inStock": "Còn hàng",
+    "sizeGuide": "Hướng dẫn chọn size",
+    "selectSizeFirst": "Chọn size",
+    "selectColorFirst": "Chọn màu",
+    "sale": "Sale"
   },
   "cart": {
     "title": "Giỏ hàng",
@@ -79,7 +109,8 @@
     "total": "Tổng cộng",
     "checkout": "Thanh toán",
     "remove": "Xóa",
-    "updateQuantity": "Cập nhật số lượng"
+    "updateQuantity": "Cập nhật số lượng",
+    "summary": "Tóm tắt"
   },
   "checkout": {
     "title": "Thanh toán",
@@ -111,7 +142,12 @@
     "orderDate": "Ngày đặt",
     "orderDetails": "Chi tiết đơn hàng",
     "shippingAddress": "Địa chỉ giao hàng",
-    "paymentStatus": "Trạng thái thanh toán"
+    "paymentStatus": "Trạng thái thanh toán",
+    "products": "Sản phẩm",
+    "summary": "Tóm tắt",
+    "statusLabel": "Trạng thái",
+    "orderAt": "Ngày đặt",
+    "shippingFee": "Phí vận chuyển"
   },
   "auth": {
     "login": "Đăng nhập",

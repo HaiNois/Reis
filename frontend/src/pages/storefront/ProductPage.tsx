@@ -40,28 +40,28 @@ export default function ProductPage() {
 
   const handleAddToCart = () => {
     if (!selectedSize) {
-      alert('Vui lòng chọn kích thước')
+      alert(t('product.selectSize'))
       return
     }
     addItem({
       variantId: `${selectedSize}-${selectedColor}`,
       productId: product.id,
       productName: product.name,
-      variantName: `${selectedSize} - ${selectedColor || 'Trắng'}`,
+      variantName: `${selectedSize} - ${selectedColor || t('product.selectColorFirst')}`,
       price: product.price,
       image: '',
       maxQuantity: 10,
     }, quantity)
-    alert('Đã thêm vào giỏ hàng')
+    alert(t('product.addToCart'))
   }
 
   return (
     <div className="container-custom py-8 md:py-12">
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-8">
-        <Link to="/" className="hover:text-black">Trang chủ</Link>
+        <Link to="/" className="hover:text-black">{t('common.home')}</Link>
         <span className="mx-2">/</span>
-        <Link to="/products" className="hover:text-black">Sản phẩm</Link>
+        <Link to="/products" className="hover:text-black">{t('common.products')}</Link>
         <span className="mx-2">/</span>
         <span className="text-black">{product.name}</span>
       </nav>
@@ -90,7 +90,7 @@ export default function ProductPage() {
             )}
             {product.compareAtPrice && (
               <span className="px-2 py-1 bg-red-sale text-white text-xs uppercase">
-                Sale
+                {t('product.sale')}
               </span>
             )}
           </div>
@@ -98,7 +98,7 @@ export default function ProductPage() {
           {/* Color Selection */}
           <div className="mb-6">
             <label className="block text-sm font-medium uppercase tracking-wider mb-3">
-              Màu sắc: <span className="font-normal text-gray-600">{selectedColor || 'Chọn màu'}</span>
+              {t('product.color')}: <span className="font-normal text-gray-600">{selectedColor || t('product.selectColorFirst')}</span>
             </label>
             <div className="flex gap-3">
               {colors.map((color) => (
@@ -118,7 +118,7 @@ export default function ProductPage() {
           {/* Size Selection */}
           <div className="mb-6">
             <label className="block text-sm font-medium uppercase tracking-wider mb-3">
-              Kích thước: <span className="font-normal text-gray-600">{selectedSize || 'Chọn size'}</span>
+              {t('product.size')}: <span className="font-normal text-gray-600">{selectedSize || t('product.selectSizeFirst')}</span>
             </label>
             <div className="flex gap-2">
               {sizes.map((size) => (
@@ -136,14 +136,14 @@ export default function ProductPage() {
               ))}
             </div>
             <Link to="/size-guide" className="inline-block mt-2 text-sm text-gray-500 hover:text-black underline">
-              Hướng dẫn chọn size
+              {t('product.sizeGuide')}
             </Link>
           </div>
 
           {/* Quantity */}
           <div className="mb-8">
             <label className="block text-sm font-medium uppercase tracking-wider mb-3">
-              Số lượng
+              {t('product.quantity')}
             </label>
             <div className="flex items-center gap-4">
               <div className="flex items-center border border-gray-200">
@@ -182,7 +182,7 @@ export default function ProductPage() {
           <div className="mt-12 border-t border-gray-200">
             <details className="group py-4 border-b border-gray-200">
               <summary className="flex items-center justify-between cursor-pointer list-none">
-                <span className="text-sm font-medium uppercase tracking-wider">Mô tả</span>
+                <span className="text-sm font-medium uppercase tracking-wider">{t('product.description')}</span>
                 <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -192,7 +192,7 @@ export default function ProductPage() {
 
             <details className="group py-4 border-b border-gray-200">
               <summary className="flex items-center justify-between cursor-pointer list-none">
-                <span className="text-sm font-medium uppercase tracking-wider">Chất liệu</span>
+                <span className="text-sm font-medium uppercase tracking-wider">{t('product.material')}</span>
                 <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -202,7 +202,7 @@ export default function ProductPage() {
 
             <details className="group py-4 border-b border-gray-200">
               <summary className="flex items-center justify-between cursor-pointer list-none">
-                <span className="text-sm font-medium uppercase tracking-wider">Hướng dẫn bảo quản</span>
+                <span className="text-sm font-medium uppercase tracking-wider">{t('product.careGuide')}</span>
                 <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -229,7 +229,7 @@ export default function ProductPage() {
                 </div>
               </div>
               <div className="product-card__info">
-                <h3 className="product-card__title">Sản phẩm liên quan {i}</h3>
+                <h3 className="product-card__title">{t('product.relatedProducts')} {i}</h3>
                 <p className="product-card__price">1,200,000 ₫</p>
               </div>
             </Link>

@@ -79,7 +79,7 @@ export default function Homepage() {
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
             <div className="text-center">
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold tracking-wide mb-4 text-white">
-                NEW SEASON
+                {t('home.newSeason')}
               </h1>
               <p className="text-white/80 mb-8">{t('home.shopNow')}</p>
               <Link to="/products" className="btn btn-primary">
@@ -136,13 +136,13 @@ export default function Homepage() {
               <div className="aspect-[16/9] overflow-hidden">
                 <img
                   src="/images/products/621561089_17959227669044199_2769149982932536652_n.jpg"
-                  alt="Women"
+                  alt={t('home.women')}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               </div>
               <div className="mt-4 text-center">
                 <h3 className="text-lg font-medium uppercase tracking-wider group-hover:text-gray-600 transition-colors">
-                  Women
+                  {t('home.women')}
                 </h3>
               </div>
             </Link>
@@ -150,13 +150,13 @@ export default function Homepage() {
               <div className="aspect-[16/9] overflow-hidden">
                 <img
                   src="/images/products/621788664_17959227642044199_6141261247981617575_n.jpg"
-                  alt="Accessories"
+                  alt={t('home.accessories')}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               </div>
               <div className="mt-4 text-center">
                 <h3 className="text-lg font-medium uppercase tracking-wider group-hover:text-gray-600 transition-colors">
-                  Accessories
+                  {t('home.accessories')}
                 </h3>
               </div>
             </Link>

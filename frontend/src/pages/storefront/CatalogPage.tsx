@@ -43,11 +43,11 @@ export default function CatalogPage() {
   ]
 
   const categories = [
-    { id: 'all', name: 'Tất cả' },
-    { id: 'shirt', name: 'Áo' },
-    { id: 'pants', name: 'Quần' },
-    { id: 'dress', name: 'Váy' },
-    { id: 'outer', name: 'Áo khoác' },
+    { id: 'all', name: t('catalog.categories.all') },
+    { id: 'shirt', name: t('catalog.categories.shirt') },
+    { id: 'pants', name: t('catalog.categories.pants') },
+    { id: 'dress', name: t('catalog.categories.dress') },
+    { id: 'outer', name: t('catalog.categories.outer') },
   ]
 
   const currentCategory = searchParams.get('category') || 'all'
@@ -56,14 +56,14 @@ export default function CatalogPage() {
     <div className="container-custom py-8 md:py-12">
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-8">
-        <Link to="/" className="hover:text-black">Trang chủ</Link>
+        <Link to="/" className="hover:text-black">{t('common.home')}</Link>
         <span className="mx-2">/</span>
-        <span className="text-black">Sản phẩm</span>
+        <span className="text-black">{t('common.products')}</span>
       </nav>
 
       {/* Page Title */}
       <h1 className="text-3xl md:text-4xl font-display font-bold tracking-wide mb-8">
-        Tất cả sản phẩm
+        {t('catalog.allProducts')}
       </h1>
 
       {/* Filters Bar */}
@@ -87,16 +87,16 @@ export default function CatalogPage() {
 
         {/* Sort */}
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">{products.length} sản phẩm</span>
+          <span className="text-sm text-gray-500">{products.length} {t('catalog.allProducts').toLowerCase()}</span>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
             className="border border-gray-200 px-4 py-2 text-sm bg-transparent focus:border-black focus:outline-none"
           >
-            <option value="newest">Mới nhất</option>
-            <option value="price-asc">Giá: Thấp đến cao</option>
-            <option value="price-desc">Giá: Cao đến thấp</option>
-            <option value="popular">Bán chạy</option>
+            <option value="newest">{t('catalog.newest')}</option>
+            <option value="price-asc">{t('catalog.priceAsc')}</option>
+            <option value="price-desc">{t('catalog.priceDesc')}</option>
+            <option value="popular">{t('catalog.popular')}</option>
           </select>
         </div>
       </div>

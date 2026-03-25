@@ -33,7 +33,7 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <div className="container-custom py-16 text-center">
-        <p>Giỏ hàng trống</p>
+        <p>{t('cart.empty')}</p>
       </div>
     )
   }
@@ -145,7 +145,7 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between text-sm">
               <span>{t('cart.shipping')}</span>
-              <span>Miễn phí</span>
+              <span>{t('common.free')}</span>
             </div>
             <div className="flex justify-between font-medium text-lg">
               <span>{t('cart.total')}</span>

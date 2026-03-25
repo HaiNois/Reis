@@ -11,16 +11,16 @@ export default function SuccessPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       </div>
-      <h1 className="text-3xl font-serif font-bold mb-4">Đặt hàng thành công!</h1>
+      <h1 className="text-3xl font-serif font-bold mb-4">{t('success.title')}</h1>
       <p className="text-primary-600 mb-8">
-        Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.
+        {t('success.message')}
       </p>
       <div className="flex justify-center gap-4">
         <Link to="/products" className="btn btn-primary">
-          Tiếp tục mua sắm
+          {t('success.continueShopping')}
         </Link>
         <Link to="/account/orders" className="btn btn-outline">
-          Xem đơn hàng
+          {t('success.viewOrder')}
         </Link>
       </div>
     </div>

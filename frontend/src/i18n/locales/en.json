@@ -9,7 +9,10 @@
     "add": "Add",
     "search": "Search",
     "viewAll": "View All",
-    "viewMore": "View More"
+    "viewMore": "View More",
+    "home": "Home",
+    "products": "Products",
+    "free": "Free"
   },
   "header": {
     "home": "Home",
@@ -52,7 +55,31 @@
     "newArrivals": "New Arrivals",
     "bestSellers": "Best Sellers",
     "shopNow": "Shop Now",
-    "viewCollection": "View Collection"
+    "viewCollection": "View Collection",
+    "newSeason": "New Season",
+    "women": "Women",
+    "accessories": "Accessories"
+  },
+  "catalog": {
+    "allProducts": "All Products",
+    "productsCount": "{count} products",
+    "newest": "Newest",
+    "priceAsc": "Price: Low to High",
+    "priceDesc": "Price: High to Low",
+    "popular": "Popular",
+    "categories": {
+      "all": "All",
+      "shirt": "Shirts",
+      "pants": "Pants",
+      "dress": "Dresses",
+      "outer": "Outerwear"
+    }
+  },
+  "success": {
+    "title": "Order Successful!",
+    "message": "Thank you for your order. We will contact you soon.",
+    "continueShopping": "Continue Shopping",
+    "viewOrder": "View Order"
   },
   "product": {
     "addToCart": "Add to Cart",
@@ -67,7 +94,11 @@
     "careGuide": "Care Guide",
     "relatedProducts": "Related Products",
     "outOfStock": "Out of Stock",
-    "inStock": "In Stock"
+    "inStock": "In Stock",
+    "sizeGuide": "Size Guide",
+    "selectSizeFirst": "Select size",
+    "selectColorFirst": "Select color",
+    "sale": "Sale"
   },
   "cart": {
     "title": "Shopping Cart",
@@ -79,7 +110,8 @@
     "total": "Total",
     "checkout": "Checkout",
     "remove": "Remove",
-    "updateQuantity": "Update quantity"
+    "updateQuantity": "Update quantity",
+    "summary": "Summary"
   },
   "checkout": {
     "title": "Checkout",
@@ -111,7 +143,12 @@
     "orderDate": "Order Date",
     "orderDetails": "Order Details",
     "shippingAddress": "Shipping Address",
-    "paymentStatus": "Payment Status"
+    "paymentStatus": "Payment Status",
+    "products": "Products",
+    "summary": "Summary",
+    "statusLabel": "Status",
+    "orderAt": "Order Date",
+    "shippingFee": "Shipping Fee"
   },
   "auth": {
     "login": "Login",

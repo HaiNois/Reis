@@ -29,16 +29,16 @@ export default function OrderDetailPage() {
   return (
     <div className="container-custom py-8">
       <Link to="/account/orders" className="text-sm text-primary-600 hover:underline mb-4 inline-block">
-        ← Quay lại đơn hàng
+        ← {t('account.myOrders')}
       </Link>
 
-      <h1 className="text-3xl font-serif font-bold mb-8">Đơn hàng {order.orderNumber}</h1>
+      <h1 className="text-3xl font-serif font-bold mb-8">{t('order.orderNumber')} {order.orderNumber}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Order Items */}
         <div className="lg:col-span-2">
           <div className="bg-primary-50 p-6">
-            <h2 className="font-medium mb-4">Sản phẩm</h2>
+            <h2 className="font-medium mb-4">{t('order.products')}</h2>
             {order.items.map((item) => (
               <div key={item.id} className="flex justify-between py-4 border-b border-primary-200">
                 <div>
@@ -55,21 +55,21 @@ export default function OrderDetailPage() {
         {/* Summary */}
         <div>
           <div className="bg-primary-50 p-6 mb-4">
-            <h2 className="font-medium mb-4">Tóm tắt</h2>
+            <h2 className="font-medium mb-4">{t('order.summary')}</h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span>Trạng thái</span>
+                <span>{t('order.statusLabel')}</span>
                 <span className="text-green-600">{t(`order.status.${order.status.toLowerCase()}`)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Ngày đặt</span>
+                <span>{t('order.orderAt')}</span>
                 <span>{order.createdAt}</span>
               </div>
             </div>
           </div>
 
           <div className="bg-primary-50 p-6">
-            <h2 className="font-medium mb-4">Địa chỉ giao hàng</h2>
+            <h2 className="font-medium mb-4">{t('order.shippingAddress')}</h2>
             <p className="text-sm">
               {order.shippingAddress.firstName} {order.shippingAddress.lastName}<br />
               {order.shippingAddress.addressLine1}<br />
@@ -81,15 +81,15 @@ export default function OrderDetailPage() {
           <div className="bg-primary-50 p-6 mt-4">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span>Tạm tính</span>
+                <span>{t('cart.subtotal')}</span>
                 <span>{order.subtotal.toLocaleString('vi-VN')} ₫</span>
               </div>
               <div className="flex justify-between">
-                <span>Phí vận chuyển</span>
-                <span>{order.shippingFee === 0 ? 'Miễn phí' : order.shippingFee.toLocaleString('vi-VN') + ' ₫'}</span>
+                <span>{t('order.shippingFee')}</span>
+                <span>{order.shippingFee === 0 ? t('common.free') : order.shippingFee.toLocaleString('vi-VN') + ' ₫'}</span>
               </div>
               <div className="flex justify-between font-medium pt-2 border-t border-primary-200">
-                <span>Tổng cộng</span>
+                <span>{t('cart.total')}</span>
                 <span>{order.total.toLocaleString('vi-VN')} ₫</span>
               </div>
             </div>

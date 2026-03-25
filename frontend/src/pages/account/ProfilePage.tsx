@@ -8,7 +8,7 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className="container-custom py-16 text-center">
-        <p>Vui lòng đăng nhập để xem thông tin.</p>
+        <p>{t('auth.login')}</p>
       </div>
     )
   }
