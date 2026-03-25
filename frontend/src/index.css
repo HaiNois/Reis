@@ -1,0 +1,110 @@
+@tailwind base;
+
+@font-face {
+  font-family: 'Glacial Indifference';
+  src: url('/fonts/glacial-indifference/GlacialIndifference-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Glacial Indifference';
+  src: url('/fonts/glacial-indifference/GlacialIndifference-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Glacial Indifference';
+  src: url('/fonts/glacial-indifference/GlacialIndifference-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply font-sans text-black antialiased;
+  }
+
+  * {
+    @apply border-gray-200;
+  }
+}
+
+@layer components {
+  .container-custom {
+    @apply mx-auto px-4 md:px-6;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-medium uppercase tracking-wider transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-black text-white hover:bg-gray-800;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 text-black hover:bg-gray-200;
+  }
+
+  .btn-outline {
+    @apply border border-black text-black hover:bg-black hover:text-white;
+  }
+
+  .input {
+    @apply w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors bg-transparent;
+  }
+
+  .link-underline {
+    @apply relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-px after:bg-black after:transition-all hover:after:w-full;
+  }
+}
+
+/* Product Card Styles */
+.product-card {
+  @apply block;
+}
+
+.product-card__image {
+  @apply aspect-[3/4] bg-gray-100 overflow-hidden;
+}
+
+.product-card__image img {
+  @apply w-full h-full object-cover transition-transform duration-500;
+}
+
+.product-card:hover .product-card__image img {
+  @apply scale-105;
+}
+
+.product-card__info {
+  @apply pt-3;
+}
+
+.product-card__title {
+  @apply text-sm font-medium mb-1;
+}
+
+.product-card__price {
+  @apply text-sm text-gray-600;
+}
+
+/* Hide scrollbar but allow scroll */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
