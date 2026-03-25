@@ -10,9 +10,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {/* Brand & Newsletter */}
           <div className="lg:col-span-2">
-            <h3 className="text-xl font-display font-bold tracking-wider mb-4">FASHION</h3>
+            <h3 className="text-xl font-display font-bold tracking-wider mb-4">
+              {t('footer.brand')}
+            </h3>
             <p className="text-sm text-gray-600 mb-6 max-w-md">
-              Chúng tôi mang đến những bộ sưu tập thời trang premium, tinh tế và đẳng cấp cho phong cách của bạn.
+              {t('footer.description')}
             </p>
             <div className="mb-8">
               <h4 className="text-sm font-medium uppercase tracking-wider mb-3">
@@ -41,11 +43,11 @@ export default function Footer() {
               {t('footer.customerCare')}
             </h4>
             <ul className="space-y-3 text-sm">
-              <li><Link to="/shipping" className="text-gray-600 hover:text-black">Vận chuyển</Link></li>
-              <li><Link to="/returns" className="text-gray-600 hover:text-black">Đổi trả</Link></li>
-              <li><Link to="/faq" className="text-gray-600 hover:text-black">FAQ</Link></li>
-              <li><Link to="/contact" className="text-gray-600 hover:text-black">Liên hệ</Link></li>
-              <li><Link to="/size-guide" className="text-gray-600 hover:text-black">Hướng dẫn size</Link></li>
+              <li><Link to="/shipping" className="text-gray-600 hover:text-black">{t('footer.shipping')}</Link></li>
+              <li><Link to="/returns" className="text-gray-600 hover:text-black">{t('footer.returns')}</Link></li>
+              <li><Link to="/faq" className="text-gray-600 hover:text-black">{t('footer.faq')}</Link></li>
+              <li><Link to="/contact" className="text-gray-600 hover:text-black">{t('footer.contact')}</Link></li>
+              <li><Link to="/size-guide" className="text-gray-600 hover:text-black">{t('footer.sizeGuide')}</Link></li>
             </ul>
           </div>
 
@@ -55,10 +57,10 @@ export default function Footer() {
               {t('footer.aboutUs')}
             </h4>
             <ul className="space-y-3 text-sm">
-              <li><Link to="/about" className="text-gray-600 hover:text-black">Về chúng tôi</Link></li>
-              <li><Link to="/stores" className="text-gray-600 hover:text-black">Cửa hàng</Link></li>
-              <li><Link to="/careers" className="text-gray-600 hover:text-black">Tuyển dụng</Link></li>
-              <li><Link to="/press" className="text-gray-600 hover:text-black">Báo chí</Link></li>
+              <li><Link to="/about" className="text-gray-600 hover:text-black">{t('footer.about')}</Link></li>
+              <li><Link to="/stores" className="text-gray-600 hover:text-black">{t('footer.stores')}</Link></li>
+              <li><Link to="/careers" className="text-gray-600 hover:text-black">{t('footer.careers')}</Link></li>
+              <li><Link to="/press" className="text-gray-600 hover:text-black">{t('footer.press')}</Link></li>
             </ul>
           </div>
         </div>
@@ -66,12 +68,12 @@ export default function Footer() {
         {/* Bottom */}
         <div className="mt-16 pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-gray-500">
-            &copy; 2024 Fashion. All rights reserved.
+            {t('footer.copyright')}
           </p>
           <div className="flex gap-6">
-            <a href="#" className="text-sm text-gray-600 hover:text-black">Privacy</a>
-            <a href="#" className="text-sm text-gray-600 hover:text-black">Terms</a>
-            <a href="#" className="text-sm text-gray-600 hover:text-black">Cookies</a>
+            <a href="#" className="text-sm text-gray-600 hover:text-black">{t('footer.privacy')}</a>
+            <a href="#" className="text-sm text-gray-600 hover:text-black">{t('footer.terms')}</a>
+            <a href="#" className="text-sm text-gray-600 hover:text-black">{t('footer.cookies')}</a>
           </div>
         </div>
       </div>

@@ -24,17 +24,28 @@
     "logout": "Logout"
   },
   "footer": {
+    "brand": "Rei.s",
+    "description": "We bring premium, elegant, and sophisticated fashion collections for your style.",
     "customerCare": "Customer Care",
     "aboutUs": "About Us",
     "contactUs": "Contact Us",
     "shipping": "Shipping",
     "returns": "Returns",
     "faq": "FAQ",
+    "contact": "Contact",
+    "sizeGuide": "Size Guide",
+    "about": "About",
+    "stores": "Stores",
+    "careers": "Careers",
+    "press": "Press",
     "newsletter": "Newsletter",
     "newsletterDesc": "Get updates on new collections and special offers",
     "subscribe": "Subscribe",
     "emailPlaceholder": "Enter your email",
-    "copyright": "© 2024 Fashion. All rights reserved."
+    "copyright": "© 2024 Fashion. All rights reserved.",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "cookies": "Cookies"
   },
   "home": {
     "featured": "Featured Collections",

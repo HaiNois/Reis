@@ -24,17 +24,28 @@
     "logout": "Đăng xuất"
   },
   "footer": {
+    "brand": "Rei.s",
+    "description": "Chúng tôi mang đến những bộ sưu tập thời trang premium, tinh tế và đẳng cấp cho phong cách của bạn.",
     "customerCare": "Chăm sóc khách hàng",
     "aboutUs": "Về chúng tôi",
     "contactUs": "Liên hệ",
     "shipping": "Vận chuyển",
     "returns": "Đổi trả",
     "faq": "Câu hỏi thường gặp",
+    "contact": "Liên hệ",
+    "sizeGuide": "Hướng dẫn size",
+    "about": "Về chúng tôi",
+    "stores": "Cửa hàng",
+    "careers": "Tuyển dụng",
+    "press": "Báo chí",
     "newsletter": "Đăng ký nhận tin",
     "newsletterDesc": "Nhận thông tin về bộ sưu tập mới và ưu đãi đặc biệt",
     "subscribe": "Đăng ký",
     "emailPlaceholder": "Nhập email của bạn",
-    "copyright": "© 2024 Fashion. All rights reserved."
+    "copyright": "© 2024 Fashion. All rights reserved.",
+    "privacy": "Quyền riêng tư",
+    "terms": "Điều khoản",
+    "cookies": "Cookies"
   },
   "home": {
     "featured": "Bộ sưu tập nổi bật",
