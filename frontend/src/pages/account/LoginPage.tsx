@@ -1,31 +1,44 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
+import api from '@/services/api'
 
 export default function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const login = useAuthStore((state) => state.login)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Demo login
-    login(
-      {
-        id: '1',
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await api.post('/auth/login', {
         email: formData.email,
-        firstName: 'Nguyễn',
-        lastName: 'Văn A',
-        role: 'CUSTOMER',
-      },
-      'demo-token'
-    )
-    navigate('/account')
+        password: formData.password,
+      })
+
+      if (response.data.success) {
+        const { user, accessToken } = response.data.data
+        login(user, accessToken)
+
+        const from = location.state?.from || (user.role === 'ADMIN' ? '/admin' : '/account')
+        navigate(from, { replace: true })
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || t('auth.loginFailed'))
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,40 +46,61 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="container-custom py-16">
-      <div className="max-w-md mx-auto">
-        <h1 className="text-3xl font-serif font-bold text-center mb-8">{t('auth.login')}</h1>
+    <div className="min-h-screen flex items-center justify-center px-8 py-12 bg-white">
+      <div className="w-full max-w-md">
+        <h1 className="text-3xl font-serif font-bold mb-2">Rei.s</h1>
+        <p className="text-gray-500 mb-8">Sign in to your account</p>
+
         <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded text-sm">
+              {error}
+            </div>
+          )}
           <div>
-            <label className="block text-sm font-medium mb-2">{t('auth.email')}</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="input"
+              placeholder="Email"
+              className="w-full px-4 py-3 border border-gray-300 focus:border-black focus:outline-none transition-colors"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">{t('auth.password')}</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="input"
+              placeholder="Password"
+              className="w-full px-4 py-3 border border-gray-300 focus:border-black focus:outline-none transition-colors"
               required
             />
           </div>
-          <button type="submit" className="btn btn-primary w-full">
-            {t('auth.login')}
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="w-4 h-4 border-gray-300" />
+              <span className="text-gray-600">Remember me</span>
+            </label>
+            <Link to="/forgot-password" className="text-gray-600 hover:text-black">
+              Forgot password?
+            </Link>
+          </div>
+          <button
+            type="submit"
+            className="w-full py-3 bg-black text-white font-medium tracking-wide hover:bg-gray-800 transition-colors"
+            disabled={loading}
+          >
+            {loading ? t('common.loading') : 'Sign In'}
           </button>
         </form>
-        <p className="text-center mt-6 text-sm text-primary-600">
-          {t('auth.noAccount')}{' '}
-          <Link to="/register" className="text-primary-900 underline">
-            {t('auth.register')}
+
+        <p className="text-center mt-8 text-sm text-gray-600">
+          Don't have an account?{' '}
+          <Link to="/register" className="font-medium hover:underline">
+            Sign up
           </Link>
         </p>
       </div>

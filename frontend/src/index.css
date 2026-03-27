@@ -1,4 +1,8 @@
 @tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "tw-animate-css";
 
 @font-face {
   font-family: 'Glacial Indifference';
@@ -23,50 +27,48 @@
   font-style: normal;
   font-display: swap;
 }
-@tailwind components;
-@tailwind utilities;
 
 @layer base {
+  :root {
+    /* Original project colors mapped to shadcn variables */
+    --background: oklch(1 0 0);
+    --foreground: oklch(0 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0 0 0);
+    --primary: oklch(0 0 0);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.96 0 0);
+    --secondary-foreground: oklch(0 0 0);
+    --muted: oklch(0.96 0 0);
+    --muted-foreground: oklch(0.45 0 0);
+    --accent: oklch(0.96 0 0);
+    --accent-foreground: oklch(0 0 0);
+    --destructive: oklch(0.54 0.22 22);
+    --destructive-foreground: oklch(1 0 0);
+    --border: oklch(0.91 0 0);
+    --input: oklch(0.91 0 0);
+    --ring: oklch(0 0 0);
+    --radius: 0px;
+  }
+
   html {
     @apply scroll-smooth;
   }
 
   body {
-    @apply font-sans text-black antialiased;
+    @apply bg-background text-foreground antialiased;
   }
 
   * {
-    @apply border-gray-200;
+    @apply border-border;
   }
 }
 
 @layer components {
   .container-custom {
     @apply mx-auto px-4 md:px-6;
-  }
-
-  .btn {
-    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-medium uppercase tracking-wider transition-all duration-200;
-  }
-
-  .btn-primary {
-    @apply bg-black text-white hover:bg-gray-800;
-  }
-
-  .btn-secondary {
-    @apply bg-gray-100 text-black hover:bg-gray-200;
-  }
-
-  .btn-outline {
-    @apply border border-black text-black hover:bg-black hover:text-white;
-  }
-
-  .input {
-    @apply w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors bg-transparent;
-  }
-
-  .link-underline {
-    @apply relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-px after:bg-black after:transition-all hover:after:w-full;
   }
 }
 
@@ -100,11 +102,11 @@
 }
 
 /* Hide scrollbar but allow scroll */
-.hide-scrollbar {
+.scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-.hide-scrollbar::-webkit-scrollbar {
+.scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
