@@ -1,0 +1,432 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  COD
+  BANK_TRANSFER
+}
+
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+}
+
+// ==================== MODELS ====================
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  password     String
+  firstName    String
+  lastName     String
+  phone        String?
+  role         UserRole  @default(CUSTOMER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  orders       Order[]
+  addresses    Address[]
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName   String
+  lastName    String
+  phone       String
+  addressLine1 String
+  addressLine2 String?
+  ward        String
+  district    String
+  province    String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  nameEn      String?
+  slug        String    @unique
+  description String?
+  descriptionEn String?
+  image       String?
+  parentId    String?
+  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+}
+
+model Product {
+  id                  String        @id @default(uuid())
+  name                String
+  nameEn              String?
+  slug                String        @unique
+  shortDescription    String?
+  shortDescriptionEn  String?
+  description         String?
+  descriptionEn      String?
+  material            String?
+  materialEn          String?
+  careGuide           String?
+  careGuideEn         String?
+  price               Decimal       @db.Decimal(12, 2)
+  compareAtPrice      Decimal?      @db.Decimal(12, 2)
+  status              ProductStatus @default(ACTIVE)
+  isFeatured          Boolean       @default(false)
+  isNewArrival        Boolean       @default(false)
+  categoryId          String?
+  category            Category?     @relation(fields: [categoryId], references: [id])
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  deletedAt           DateTime?
+
+  // Relations
+  variants             ProductVariant[]
+  images               ProductImage[]
+  homepageSectionProducts HomepageSectionProduct[]
+  orderItems           OrderItem[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([isNewArrival])
+  @@index([deletedAt])
+}
+
+model ProductVariant {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku         String   @unique
+  size        String
+  color       String
+  price       Decimal  @db.Decimal(12, 2)
+  salePrice   Decimal? @db.Decimal(12, 2)
+  quantity    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+  inventoryLogs InventoryLog[]
+
+  @@index([productId])
+  @@index([sku])
+  @@index([isActive])
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model CartItem {
+  id          String        @id @default(uuid())
+  userId      String?
+  sessionId   String?
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  quantity    Int           @default(1)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([variantId])
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  orderNumber     String        @unique
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id])
+  status          OrderStatus   @default(PENDING)
+  paymentStatus   PaymentStatus @default(PENDING)
+  paymentMethod   PaymentMethod @default(COD)
+
+  // Pricing
+  subtotal        Decimal       @db.Decimal(12, 2)
+  shippingFee     Decimal       @default(0) @db.Decimal(12, 2)
+  discount        Decimal       @default(0) @db.Decimal(12, 2)
+  total           Decimal       @db.Decimal(12, 2)
+
+  // Shipping
+  shippingFirstName String
+  shippingLastName  String
+  shippingPhone    String
+  shippingAddress  String
+  shippingWard     String
+  shippingDistrict String
+  shippingProvince String
+
+  notes           String?
+  internalNote    String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  items           OrderItem[]
+
+  @@index([orderNumber])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          String        @id @default(uuid())
+  orderId     String
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id])
+  productId   String
+  product     Product       @relation(fields: [productId], references: [id])
+  productName String
+  variantName String
+  quantity    Int
+  unitPrice   Decimal       @db.Decimal(12, 2)
+  totalPrice  Decimal       @db.Decimal(12, 2)
+
+  createdAt   DateTime      @default(now())
+
+  @@index([orderId])
+  @@index([variantId])
+  @@index([productId])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Banner {
+  id          String   @id @default(uuid())
+  title       String
+  titleEn     String?
+  subtitle    String?
+  subtitleEn  String?
+  image       String
+  link        String?
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ==================== HOMEPAGE CMS ====================
+
+enum HomepageSectionType {
+  ANNOUNCEMENT_BAR
+  HERO
+  PRODUCT_RAIL
+  MEDIA_TILES
+}
+
+enum HomepageItemType {
+  ANNOUNCEMENT
+  MEDIA_TILE
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum LinkTarget {
+  SELF
+  BLANK
+}
+
+model HomepageSection {
+  id           String             @id @default(uuid())
+  pageKey      String             @default("homepage")
+  sectionType  HomepageSectionType
+  slug         String             @unique
+  title        String?
+  subtitle     String?
+  description  String?            @db.Text
+  layout       String?            // grid, carousel
+  configJson   Json?              // extra config per type: { overlayStyle, textAlign, etc. }
+  isActive     Boolean           @default(true)
+  sortOrder    Int                @default(0)
+  startsAt     DateTime?
+  endsAt       DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  deletedAt    DateTime?
+
+  items    HomepageSectionItem[]
+  products HomepageSectionProduct[]
+
+  @@index([pageKey])
+  @@index([sectionType])
+  @@index([slug])
+  @@index([isActive, sortOrder])
+  @@index([deletedAt])
+}
+
+model HomepageSectionItem {
+  id                String            @id @default(uuid())
+  homepageSectionId String
+  homepageSection  HomepageSection   @relation(fields: [homepageSectionId], references: [id], onDelete: Cascade)
+  itemType          HomepageItemType
+  title             String?
+  subtitle          String?
+  description       String?           @db.Text
+  mediaUrl          String?
+  mobileMediaUrl    String?
+  mediaType         MediaType         @default(IMAGE)
+  ctaLabel          String?
+  ctaUrl            String?
+  linkTarget        LinkTarget        @default(SELF)
+  metaJson          Json?             // { overlayStyle, overlayOpacity, etc. }
+  isActive          Boolean           @default(true)
+  sortOrder         Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  deletedAt         DateTime?
+
+  @@index([homepageSectionId])
+  @@index([itemType])
+  @@index([isActive, sortOrder])
+}
+
+model HomepageSectionProduct {
+  id                String          @id @default(uuid())
+  homepageSectionId String
+  homepageSection  HomepageSection @relation(fields: [homepageSectionId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product         @relation(fields: [productId], references: [id])
+  sortOrder         Int             @default(0)
+  badgeText         String?         // "Sale", "New", "Best Seller"
+  createdAt         DateTime        @default(now())
+
+  @@unique([homepageSectionId, productId])
+  @@index([homepageSectionId])
+  @@index([productId])
+}
+
+// ==================== FEEDBACK ====================
+
+model Feedback {
+  id            String    @id @default(uuid())
+  customerName  String
+  customerRole  String?
+  content       String    @db.Text
+  avatarUrl     String?
+  rating        Int       @default(5)
+  isFeatured    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  @@index([isFeatured, isActive, sortOrder])
+  @@index([deletedAt])
+}
+
+// ==================== INVENTORY ====================
+
+enum InventoryType {
+  ADJUSTMENT
+  ORDER_RESERVED
+  ORDER_RELEASE
+  SALE
+  RETURN
+}
+
+model InventoryLog {
+  id          String        @id @default(uuid())
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id])
+  quantity    Int
+  type        InventoryType
+  reference   String?
+  note        String?
+  createdAt   DateTime     @default(now())
+  createdBy   String
+
+  @@index([variantId])
+  @@index([createdAt])
+}
+
+// ==================== CMS PAGES ====================
+
+model CmsPage {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  titleEn     String?
+  content     String   @db.Text
+  contentEn   String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+}
