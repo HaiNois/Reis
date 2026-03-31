@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { collectionApi, catalogApi, productApi, Collection, Catalog, Product } from '@/services/productApi'
+import { showToast, handleApiError } from '@/utils/toast'
 
 export default function CollectionsPage() {
   const { t } = useTranslation()
@@ -43,7 +44,7 @@ export default function CollectionsPage() {
         setSelectedCatalogId(response.data[0].id)
       }
     } catch (error) {
-      console.error('Failed to fetch catalogs:', error)
+      handleApiError(error, 'Failed to fetch catalogs')
     }
   }
 
@@ -53,7 +54,7 @@ export default function CollectionsPage() {
       const response = await collectionApi.getAllCollections(selectedCatalogId || undefined)
       setCollections(response.data || [])
     } catch (error) {
-      console.error('Failed to fetch collections:', error)
+      handleApiError(error, 'Failed to fetch collections')
     } finally {
       setLoading(false)
     }
@@ -64,7 +65,7 @@ export default function CollectionsPage() {
       const response = await collectionApi.getCollectionProducts(collectionId)
       setCollectionProducts(response.data || [])
     } catch (error) {
-      console.error('Failed to fetch collection products:', error)
+      handleApiError(error, 'Failed to fetch collection products')
     }
   }
 
@@ -81,7 +82,7 @@ export default function CollectionsPage() {
       const allProductsRes = await productApi.getProducts({ limit: 100 })
       setAvailableProducts(allProductsRes.data || [])
     } catch (error) {
-      console.error('Failed to fetch products:', error)
+      handleApiError(error, 'Failed to fetch products')
     } finally {
       setLoadingProducts(false)
     }
@@ -117,8 +118,7 @@ export default function CollectionsPage() {
       })
       fetchCollections()
     } catch (error) {
-      console.error('Failed to save collection:', error)
-      alert('Failed to save collection. Make sure backend is running.')
+      handleApiError(error, 'Failed to save collection')
     }
   }
 
@@ -128,7 +128,7 @@ export default function CollectionsPage() {
       await collectionApi.deleteCollection(id)
       fetchCollections()
     } catch (error) {
-      console.error('Failed to delete collection:', error)
+      handleApiError(error, 'Failed to delete collection')
     }
   }
 
@@ -451,10 +451,10 @@ export default function CollectionsPage() {
                   onClick={async () => {
                     try {
                       // Save collection products - need backend API
-                      alert('Product management saved! (API not implemented yet)')
+                      showToast.info('Product management feature coming soon')
                       setShowProductModal(false)
                     } catch (error) {
-                      console.error('Failed to save collection products:', error)
+                      handleApiError(error, 'Failed to save collection products')
                     }
                   }}
                   className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"

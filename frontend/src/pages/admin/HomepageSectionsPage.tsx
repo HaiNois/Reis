@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { homepageSectionApi, HomepageSection, HomepageSectionType } from '@/services/homepageApi'
 import { productApi, Product } from '@/services/productApi'
+import { showToast, handleApiError } from '@/utils/toast'
 
 const SECTION_TYPES: { value: HomepageSectionType; label: string; labelVi: string; icon: string }[] = [
   { value: 'ANNOUNCEMENT_BAR', label: 'Announcement Bar', labelVi: 'Thanh thông báo', icon: '📢' },
@@ -46,7 +47,7 @@ export default function HomepageSectionsPage() {
       const response = await homepageSectionApi.getSections({ limit: 100 })
       setSections(response.data || [])
     } catch (error) {
-      console.error('Failed to fetch sections:', error)
+      handleApiError(error, 'Failed to fetch sections')
     } finally {
       setLoading(false)
     }
@@ -57,7 +58,7 @@ export default function HomepageSectionsPage() {
       const response = await productApi.getProducts({ limit: 100, status: 'ACTIVE' })
       setAvailableProducts(response.data || [])
     } catch (error) {
-      console.error('Failed to fetch products:', error)
+      handleApiError(error, 'Failed to fetch products')
     }
   }
 
@@ -79,8 +80,7 @@ export default function HomepageSectionsPage() {
       resetForm()
       fetchSections()
     } catch (error) {
-      console.error('Failed to save section:', error)
-      alert(t('admin.errorSaving'))
+      handleApiError(error, 'Failed to save section')
     }
   }
 
@@ -88,9 +88,10 @@ export default function HomepageSectionsPage() {
     if (!confirm(t('admin.confirmDelete'))) return
     try {
       await homepageSectionApi.deleteSection(id)
+      showToast.success('Section deleted successfully')
       fetchSections()
     } catch (error) {
-      console.error('Failed to delete section:', error)
+      handleApiError(error, 'Failed to delete section')
     }
   }
 
@@ -99,7 +100,7 @@ export default function HomepageSectionsPage() {
       await homepageSectionApi.updateSection(section.id, { isActive: !section.isActive })
       fetchSections()
     } catch (error) {
-      console.error('Failed to toggle section:', error)
+      handleApiError(error, 'Failed to toggle section')
     }
   }
 
@@ -547,7 +548,7 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
       const updated = await homepageSectionApi.getSectionById(section.id)
       setItems(updated.data.items)
     } catch (error) {
-      console.error('Failed to save item:', error)
+      handleApiError(error, 'Failed to save item')
     }
   }
 
@@ -558,7 +559,7 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
       const updated = await homepageSectionApi.getSectionById(section.id)
       setItems(updated.data.items)
     } catch (error) {
-      console.error('Failed to delete item:', error)
+      handleApiError(error, 'Failed to delete item')
     }
   }
 
@@ -791,7 +792,7 @@ function ProductRailEditor({
       const updated = await homepageSectionApi.getSectionById(section.id)
       setProducts(updated.data.products)
     } catch (error) {
-      console.error('Failed to add product:', error)
+      handleApiError(error, 'Failed to add product')
     }
   }
 
@@ -801,7 +802,7 @@ function ProductRailEditor({
       const updated = await homepageSectionApi.getSectionById(section.id)
       setProducts(updated.data.products)
     } catch (error) {
-      console.error('Failed to remove product:', error)
+      handleApiError(error, 'Failed to remove product')
     }
   }
 

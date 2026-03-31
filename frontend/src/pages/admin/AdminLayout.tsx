@@ -47,9 +47,11 @@ export default function AdminLayout() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
             >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <div className="transition-transform duration-300">
+                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </div>
             </button>
             <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
           </div>
@@ -67,21 +69,33 @@ export default function AdminLayout() {
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className={`bg-white shadow min-h-screen transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-17'}`}>
+        <aside
+          className={`bg-white shadow min-h-screen transition-all duration-300 ease-in-out ${
+            sidebarOpen ? 'w-64 opacity-100 translate-x-0' : 'w-17 opacity-90 -translate-x-0'
+          }`}
+        >
           <nav className="p-4">
             <ul className="space-y-2">
               {navItems.map((item) => (
                 <li key={item.path}>
                   <Link
                     to={item.path}
-                    className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${location.pathname === item.path
-                        ? 'bg-black text-white'
-                        : 'text-gray-700 hover:bg-gray-100'}`}
+                    className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
+                      location.pathname === item.path
+                        ? 'bg-black text-white shadow-md'
+                        : 'text-gray-700 hover:bg-gray-100 hover:shadow-sm'
+                    }`}
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                     </svg>
-                    <span className={sidebarOpen ? 'block' : 'hidden'}>{t(item.label)}</span>
+                    <span
+                      className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                        sidebarOpen ? 'max-w-48 opacity-100' : 'max-w-0 opacity-0'
+                      }`}
+                    >
+                      {t(item.label)}
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -90,7 +104,7 @@ export default function AdminLayout() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 transition-all duration-300 ease-in-out">
           <Outlet />
         </main>
       </div>

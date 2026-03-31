@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/stores/cartStore'
 import { productApi, getMainImageUrl, getThumbnailImages, getImageUrl, FALLBACK_IMAGE, ProductImage } from '@/services/productApi'
+import { showToast } from '@/utils/toast'
 
 export default function ProductPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -71,7 +72,7 @@ export default function ProductPage() {
 
   const handleAddToCart = () => {
     if (!selectedSize) {
-      alert(t('product.selectSize'))
+      showToast.warning(t('product.selectSize'))
       return
     }
     addItem({
@@ -83,7 +84,7 @@ export default function ProductPage() {
       image: mainImage,
       maxQuantity: 10,
     }, quantity)
-    alert(t('product.addToCart'))
+    showToast.success(t('product.addToCart'))
   }
 
   if (loading) {
