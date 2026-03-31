@@ -16,6 +16,7 @@ export const createProductSchema = z.object({
   careGuideEn: z.string().optional(),
   price: z.number().positive('Price must be positive'),
   compareAtPrice: z.number().positive().optional(),
+  image: z.string().optional(), // Main product image URL
   categoryId: z.string().uuid().optional(),
   status: z.enum(['ACTIVE', 'DRAFT', 'ARCHIVED']).optional(),
   isFeatured: z.boolean().optional(),

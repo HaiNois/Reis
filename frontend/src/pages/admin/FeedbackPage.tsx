@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { feedbackApi, Feedback } from '@/services/homepageApi'
+import { showToast, handleApiError } from '@/utils/toast'
 
 export default function FeedbackPage() {
   const { t } = useTranslation()
@@ -28,7 +29,7 @@ export default function FeedbackPage() {
       const response = await feedbackApi.getFeedback({ limit: 100 })
       setFeedbackList(response.data || [])
     } catch (error) {
-      console.error('Failed to fetch feedback:', error)
+      handleApiError(error, 'Failed to fetch feedback')
     } finally {
       setLoading(false)
     }
@@ -46,8 +47,7 @@ export default function FeedbackPage() {
       resetForm()
       fetchFeedback()
     } catch (error) {
-      console.error('Failed to save feedback:', error)
-      alert(t('admin.errorSaving'))
+      handleApiError(error, 'Failed to save feedback')
     }
   }
 
@@ -57,7 +57,7 @@ export default function FeedbackPage() {
       await feedbackApi.deleteFeedback(id)
       fetchFeedback()
     } catch (error) {
-      console.error('Failed to delete feedback:', error)
+      handleApiError(error, 'Failed to delete feedback')
     }
   }
 
@@ -66,7 +66,7 @@ export default function FeedbackPage() {
       await feedbackApi.updateFeedback(feedback.id, { isFeatured: !feedback.isFeatured })
       fetchFeedback()
     } catch (error) {
-      console.error('Failed to toggle featured:', error)
+      handleApiError(error, 'Failed to toggle featured')
     }
   }
 
@@ -75,7 +75,7 @@ export default function FeedbackPage() {
       await feedbackApi.updateFeedback(feedback.id, { isActive: !feedback.isActive })
       fetchFeedback()
     } catch (error) {
-      console.error('Failed to toggle active:', error)
+      handleApiError(error, 'Failed to toggle active')
     }
   }
 

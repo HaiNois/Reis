@@ -5,8 +5,9 @@ import { authenticate, requireAdmin } from '../../shared/middlewares/auth.js'
 const router = Router()
 
 // Admin - Categories - mounted at /api/v1/admin/categories
-router.post('/categories', authenticate, requireAdmin, productController.createCategory)
-router.put('/categories/:id', authenticate, requireAdmin, productController.updateCategory)
-router.delete('/categories/:id', authenticate, requireAdmin, productController.deleteCategory)
+router.get('/', authenticate, requireAdmin, productController.getCategories)
+router.post('/', authenticate, requireAdmin, productController.createCategory)
+router.put('/:id', authenticate, requireAdmin, productController.updateCategory)
+router.delete('/:id', authenticate, requireAdmin, productController.deleteCategory)
 
 export default router

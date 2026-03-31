@@ -83,6 +83,7 @@ export function errorHandler(
   }
 
   // Unexpected errors
+  console.error('ERROR HANDLER FINAL:', err.message, err.stack)
   logger.error('Unexpected error:', err)
 
   res.status(500).json({

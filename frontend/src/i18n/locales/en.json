@@ -192,6 +192,8 @@
     "settings": "Settings",
     "addProduct": "Add Product",
     "editProduct": "Edit Product",
+    "addCollection": "Add Collection",
+    "editCollection": "Edit Collection",
     "totalOrders": "Total Orders",
     "totalRevenue": "Total Revenue",
     "totalProducts": "Total Products",

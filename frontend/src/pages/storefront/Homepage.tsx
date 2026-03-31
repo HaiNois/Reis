@@ -5,7 +5,9 @@ import {
   homepageSectionApi,
   feedbackApi,
   HomepageSection,
+  ProductImage as HomepageProductImage,
 } from "@/services/homepageApi";
+import { FALLBACK_IMAGE } from "@/services/productApi";
 import {
   Carousel,
   CarouselContent,
@@ -14,13 +16,22 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
+// Helper to get main image URL from various formats
+function getProductImageUrl(images: HomepageProductImage[] | undefined): string {
+  if (!images || images.length === 0) return FALLBACK_IMAGE
+
+  // Sort by position (legacy format)
+  const sorted = [...images].sort((a, b) => a.position - b.position)
+  const mainImage = sorted[0]
+
+  // Support both legacy (url) and new format (publicUrl)
+  return mainImage?.url || mainImage?.publicUrl || FALLBACK_IMAGE
+}
+
 // ==================== SECTION RENDERERS ====================
 
 // Announcement Bar
 function AnnouncementBarSection({ section }: { section: HomepageSection }) {
-  const { i18n } = useTranslation();
-  const lang = i18n.language || "vi";
-
   const announcements =
     section.items?.filter((i) => i.itemType === "ANNOUNCEMENT") || [];
 
@@ -157,10 +168,7 @@ function ProductRailSection({ section }: { section: HomepageSection }) {
                 >
                   <div className="product-card__image aspect-[3/4]">
                     <img
-                      src={
-                        product.images?.[0]?.url ||
-                        "/images/products/placeholder.jpg"
-                      }
+                      src={getProductImageUrl(product.images)}
                       alt={
                         lang === "en" && product.nameEn
                           ? product.nameEn
@@ -195,7 +203,6 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
   const { i18n } = useTranslation();
   const lang = i18n.language || "vi";
   const title = section.title;
-  const layout = section.layout || "grid";
 
   const items = section.items?.filter((i) => i.itemType === "MEDIA_TILE") || [];
 

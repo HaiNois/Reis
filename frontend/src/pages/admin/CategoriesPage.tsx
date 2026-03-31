@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { categoryApi, Category } from '@/services/productApi'
+import { showToast, handleApiError } from '@/utils/toast'
 
 export default function CategoriesPage() {
   const { t } = useTranslation()
@@ -24,7 +25,7 @@ export default function CategoriesPage() {
       const response = await categoryApi.getCategories()
       setCategories(response.data || [])
     } catch (error) {
-      console.error('Failed to fetch categories:', error)
+      handleApiError(error, 'Failed to fetch categories')
     } finally {
       setLoading(false)
     }
@@ -43,8 +44,7 @@ export default function CategoriesPage() {
       setFormData({ name: '', slug: '', description: '', image: '' })
       fetchCategories()
     } catch (error) {
-      console.error('Failed to save category:', error)
-      alert('Failed to save category. Make sure backend is running.')
+      handleApiError(error, 'Failed to save category')
     }
   }
 
@@ -54,7 +54,7 @@ export default function CategoriesPage() {
       await categoryApi.deleteCategory(id)
       fetchCategories()
     } catch (error) {
-      console.error('Failed to delete category:', error)
+      handleApiError(error, 'Failed to delete category')
     }
   }
 

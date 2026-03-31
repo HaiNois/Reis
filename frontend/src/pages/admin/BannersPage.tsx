@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { bannerApi, Banner } from '@/services/productApi'
+import { showToast, handleApiError } from '@/utils/toast'
 
 export default function BannersPage() {
   const { t } = useTranslation()
@@ -26,7 +27,7 @@ export default function BannersPage() {
       const response = await bannerApi.getAllBanners()
       setBanners(response.data || [])
     } catch (error) {
-      console.error('Failed to fetch banners:', error)
+      handleApiError(error, 'Failed to fetch banners')
     } finally {
       setLoading(false)
     }
@@ -52,8 +53,7 @@ export default function BannersPage() {
       })
       fetchBanners()
     } catch (error) {
-      console.error('Failed to save banner:', error)
-      alert('Failed to save banner. Make sure backend is running.')
+      handleApiError(error, 'Failed to save banner')
     }
   }
 
@@ -63,7 +63,7 @@ export default function BannersPage() {
       await bannerApi.deleteBanner(id)
       fetchBanners()
     } catch (error) {
-      console.error('Failed to delete banner:', error)
+      handleApiError(error, 'Failed to delete banner')
     }
   }
 

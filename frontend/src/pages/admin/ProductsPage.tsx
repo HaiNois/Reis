@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { productApi, Product } from '@/services/productApi'
+import { ImageUpload } from '@/components/ui/image-upload'
+import { showToast, handleApiError } from '@/utils/toast'
 
 export default function ProductsPage() {
   const { t } = useTranslation()
@@ -17,6 +19,7 @@ export default function ProductsPage() {
     price: 0,
     compareAtPrice: 0,
     status: 'ACTIVE' as 'ACTIVE' | 'DRAFT' | 'ARCHIVED',
+    image: '',
   })
 
   useEffect(() => {
@@ -28,7 +31,7 @@ export default function ProductsPage() {
       const response = await productApi.getProducts({ limit: 100 })
       setProducts(response.data || [])
     } catch (error) {
-      console.error('Failed to fetch products:', error)
+      handleApiError(error, 'Failed to fetch products')
     } finally {
       setLoading(false)
     }
@@ -39,8 +42,10 @@ export default function ProductsPage() {
     try {
       if (editingProduct) {
         await productApi.updateProduct(editingProduct.id, formData)
+        showToast.success('Product updated successfully')
       } else {
         await productApi.createProduct(formData)
+        showToast.success('Product created successfully')
       }
       setShowModal(false)
       setEditingProduct(null)
@@ -53,11 +58,11 @@ export default function ProductsPage() {
         price: 0,
         compareAtPrice: 0,
         status: 'ACTIVE',
+        image: '',
       })
       fetchProducts()
     } catch (error) {
-      console.error('Failed to save product:', error)
-      alert('Failed to save product. Make sure backend is running.')
+      handleApiError(error, 'Failed to save product')
     }
   }
 
@@ -65,9 +70,10 @@ export default function ProductsPage() {
     if (!confirm('Are you sure you want to delete this product?')) return
     try {
       await productApi.deleteProduct(id)
+      showToast.success('Product deleted successfully')
       fetchProducts()
     } catch (error) {
-      console.error('Failed to delete product:', error)
+      handleApiError(error, 'Failed to delete product')
     }
   }
 
@@ -82,6 +88,7 @@ export default function ProductsPage() {
       price: product.price,
       compareAtPrice: product.compareAtPrice || 0,
       status: product.status,
+      image: product.image || '',
     })
     setShowModal(true)
   }
@@ -110,6 +117,7 @@ export default function ProductsPage() {
               price: 0,
               compareAtPrice: 0,
               status: 'ACTIVE',
+              image: '',
             })
             setShowModal(true)
           }}
@@ -219,6 +227,14 @@ export default function ProductsPage() {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                  <ImageUpload
+                    value={formData.image}
+                    onChange={(url) => setFormData({ ...formData, image: url })}
                   />
                 </div>
 

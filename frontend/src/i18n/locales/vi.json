@@ -191,6 +191,8 @@
     "settings": "Cài đặt",
     "addProduct": "Thêm sản phẩm",
     "editProduct": "Sửa sản phẩm",
+    "addCollection": "Thêm bộ sưu tập",
+    "editCollection": "Sửa bộ sưu tập",
     "totalOrders": "Tổng đơn hàng",
     "totalRevenue": "Doanh thu",
     "totalProducts": "Sản phẩm",

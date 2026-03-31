@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { homepageSectionApi, HomepageSection, HomepageSectionType } from '@/services/homepageApi'
 import { productApi, Product } from '@/services/productApi'
+import { showToast, handleApiError } from '@/utils/toast'
 
 const SECTION_TYPES: { value: HomepageSectionType; label: string; labelVi: string; icon: string }[] = [
   { value: 'ANNOUNCEMENT_BAR', label: 'Announcement Bar', labelVi: 'Thanh thông báo', icon: '📢' },
@@ -46,7 +47,7 @@ export default function HomepageSectionsPage() {
       const response = await homepageSectionApi.getSections({ limit: 100 })
       setSections(response.data || [])
     } catch (error) {
-      console.error('Failed to fetch sections:', error)
+      handleApiError(error, 'Failed to fetch sections')
     } finally {
       setLoading(false)
     }
@@ -57,7 +58,7 @@ export default function HomepageSectionsPage() {
       const response = await productApi.getProducts({ limit: 100, status: 'ACTIVE' })
       setAvailableProducts(response.data || [])
     } catch (error) {
-      console.error('Failed to fetch products:', error)
+      handleApiError(error, 'Failed to fetch products')
     }
   }
 
@@ -79,8 +80,7 @@ export default function HomepageSectionsPage() {
       resetForm()
       fetchSections()
     } catch (error) {
-      console.error('Failed to save section:', error)
-      alert(t('admin.errorSaving'))
+      handleApiError(error, 'Failed to save section')
     }
   }
 
@@ -88,9 +88,10 @@ export default function HomepageSectionsPage() {
     if (!confirm(t('admin.confirmDelete'))) return
     try {
       await homepageSectionApi.deleteSection(id)
+      showToast.success('Section deleted successfully')
       fetchSections()
     } catch (error) {
-      console.error('Failed to delete section:', error)
+      handleApiError(error, 'Failed to delete section')
     }
   }
 
@@ -99,7 +100,7 @@ export default function HomepageSectionsPage() {
       await homepageSectionApi.updateSection(section.id, { isActive: !section.isActive })
       fetchSections()
     } catch (error) {
-      console.error('Failed to toggle section:', error)
+      handleApiError(error, 'Failed to toggle section')
     }
   }
 
@@ -258,7 +259,7 @@ export default function HomepageSectionsPage() {
 
               <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                 <span>{section.items?.length || 0} items</span>
-                <span>{section._count?.products || 0} products</span>
+                <span>{(section as any)._count?.products || 0} products</span>
               </div>
 
               <div className="flex gap-2">
@@ -496,8 +497,7 @@ export default function HomepageSectionsPage() {
 // ==================== SECTION ITEMS EDITOR ====================
 
 function SectionItemsEditor({ section, onClose }: { section: HomepageSection; onClose: () => void }) {
-  const { t, i18n } = useTranslation()
-  const lang = i18n.language || 'vi'
+  const { t } = useTranslation()
   const [items, setItems] = useState(section.items || [])
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
@@ -523,8 +523,6 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
         return [{ value: 'ANNOUNCEMENT', label: 'Announcement' }]
       case 'MEDIA_TILES':
         return [{ value: 'MEDIA_TILE', label: 'Media Tile' }]
-      case 'FOOTER_LINK_GROUP':
-        return [{ value: 'FOOTER_LINK', label: 'Footer Link' }]
       default:
         return []
     }
@@ -533,10 +531,16 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      const formDataWithTypes = {
+        ...itemForm,
+        itemType: itemForm.itemType as any,
+        mediaType: itemForm.mediaType as any,
+        linkTarget: itemForm.linkTarget as any,
+      }
       if (editingItem) {
-        await homepageSectionApi.updateItem(section.id, editingItem.id, itemForm)
+        await homepageSectionApi.updateItem(section.id, editingItem.id, formDataWithTypes)
       } else {
-        await homepageSectionApi.createItem(section.id, itemForm)
+        await homepageSectionApi.createItem(section.id, formDataWithTypes)
       }
       setShowModal(false)
       resetItemForm()
@@ -544,7 +548,7 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
       const updated = await homepageSectionApi.getSectionById(section.id)
       setItems(updated.data.items)
     } catch (error) {
-      console.error('Failed to save item:', error)
+      handleApiError(error, 'Failed to save item')
     }
   }
 
@@ -555,7 +559,7 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
       const updated = await homepageSectionApi.getSectionById(section.id)
       setItems(updated.data.items)
     } catch (error) {
-      console.error('Failed to delete item:', error)
+      handleApiError(error, 'Failed to delete item')
     }
   }
 
@@ -621,7 +625,7 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
 
           {/* Items List */}
           <div className="space-y-2">
-            {items.map((item, idx) => (
+            {items.map((item) => (
               <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   {item.mediaUrl && (
@@ -788,7 +792,7 @@ function ProductRailEditor({
       const updated = await homepageSectionApi.getSectionById(section.id)
       setProducts(updated.data.products)
     } catch (error) {
-      console.error('Failed to add product:', error)
+      handleApiError(error, 'Failed to add product')
     }
   }
 
@@ -798,7 +802,7 @@ function ProductRailEditor({
       const updated = await homepageSectionApi.getSectionById(section.id)
       setProducts(updated.data.products)
     } catch (error) {
-      console.error('Failed to remove product:', error)
+      handleApiError(error, 'Failed to remove product')
     }
   }
 
