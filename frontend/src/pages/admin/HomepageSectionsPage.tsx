@@ -258,7 +258,7 @@ export default function HomepageSectionsPage() {
 
               <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                 <span>{section.items?.length || 0} items</span>
-                <span>{section._count?.products || 0} products</span>
+                <span>{(section as any)._count?.products || 0} products</span>
               </div>
 
               <div className="flex gap-2">
@@ -496,8 +496,7 @@ export default function HomepageSectionsPage() {
 // ==================== SECTION ITEMS EDITOR ====================
 
 function SectionItemsEditor({ section, onClose }: { section: HomepageSection; onClose: () => void }) {
-  const { t, i18n } = useTranslation()
-  const lang = i18n.language || 'vi'
+  const { t } = useTranslation()
   const [items, setItems] = useState(section.items || [])
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
@@ -523,8 +522,6 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
         return [{ value: 'ANNOUNCEMENT', label: 'Announcement' }]
       case 'MEDIA_TILES':
         return [{ value: 'MEDIA_TILE', label: 'Media Tile' }]
-      case 'FOOTER_LINK_GROUP':
-        return [{ value: 'FOOTER_LINK', label: 'Footer Link' }]
       default:
         return []
     }
@@ -533,10 +530,16 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      const formDataWithTypes = {
+        ...itemForm,
+        itemType: itemForm.itemType as any,
+        mediaType: itemForm.mediaType as any,
+        linkTarget: itemForm.linkTarget as any,
+      }
       if (editingItem) {
-        await homepageSectionApi.updateItem(section.id, editingItem.id, itemForm)
+        await homepageSectionApi.updateItem(section.id, editingItem.id, formDataWithTypes)
       } else {
-        await homepageSectionApi.createItem(section.id, itemForm)
+        await homepageSectionApi.createItem(section.id, formDataWithTypes)
       }
       setShowModal(false)
       resetItemForm()
@@ -621,7 +624,7 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
 
           {/* Items List */}
           <div className="space-y-2">
-            {items.map((item, idx) => (
+            {items.map((item) => (
               <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   {item.mediaUrl && (

@@ -18,9 +18,6 @@ import {
 
 // Announcement Bar
 function AnnouncementBarSection({ section }: { section: HomepageSection }) {
-  const { i18n } = useTranslation();
-  const lang = i18n.language || "vi";
-
   const announcements =
     section.items?.filter((i) => i.itemType === "ANNOUNCEMENT") || [];
 
@@ -195,7 +192,6 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
   const { i18n } = useTranslation();
   const lang = i18n.language || "vi";
   const title = section.title;
-  const layout = section.layout || "grid";
 
   const items = section.items?.filter((i) => i.itemType === "MEDIA_TILE") || [];
 

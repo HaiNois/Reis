@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/stores/cartStore'
 
 export default function ProductPage() {
-  const { slug } = useParams()
+  useParams() // Get params for routing
   const { t } = useTranslation()
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
