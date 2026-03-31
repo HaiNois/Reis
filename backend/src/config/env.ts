@@ -25,6 +25,14 @@ export const envSchema = z.object({
 
   // CORS
   CORS_ORIGIN: z.string().url(),
+
+  // R2 Cloudflare
+  R2_ACCOUNT_ID: z.string().default(''),
+  R2_ACCESS_KEY_ID: z.string().default(''),
+  R2_SECRET_ACCESS_KEY: z.string().default(''),
+  R2_API_TOKEN: z.string().default(''),
+  R2_BUCKET_NAME: z.string().default('uploads'),
+  R2_PUBLIC_URL: z.string().default(''),
 })
 
 export type Env = z.infer<typeof envSchema>

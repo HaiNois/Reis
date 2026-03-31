@@ -1,12 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
+import { Menu, X } from 'lucide-react'
 
 const navItems = [
   { path: '/admin', label: 'admin.dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
   { path: '/admin/products', label: 'admin.products', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
   { path: '/admin/categories', label: 'admin.categories', icon: 'M4 6h16M4 12h16M4 18h16' },
+  { path: '/admin/collections', label: 'admin.collections', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
   { path: '/admin/orders', label: 'admin.orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
   { path: '/admin/banners', label: 'admin.banners', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
   { path: '/admin/homepage-sections', label: 'admin.homepageSections', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z' },
@@ -18,6 +20,7 @@ export default function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, isAuthenticated, logout } = useAuthStore()
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // Check authentication and admin role
   useEffect(() => {
@@ -36,12 +39,20 @@ export default function AdminLayout() {
     )
   }
 
-  return (  
+  return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+      <header className="bg-white shadow sticky top-0 z-10 transition-colors duration-300 hover:bg-gray-50 ">
+        <div className="mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+            <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">{user?.email}</span>
             <button
@@ -56,7 +67,7 @@ export default function AdminLayout() {
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-64 bg-white shadow min-h-screen">
+        <aside className={`bg-white shadow min-h-screen transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-17'}`}>
           <nav className="p-4">
             <ul className="space-y-2">
               {navItems.map((item) => (
@@ -70,7 +81,7 @@ export default function AdminLayout() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                     </svg>
-                    {t(item.label)}
+                    <span className={sidebarOpen ? 'block' : 'hidden'}>{t(item.label)}</span>
                   </Link>
                 </li>
               ))}

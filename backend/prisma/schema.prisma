@@ -100,6 +100,83 @@ model Category {
   @@index([slug])
 }
 
+// ==================== CATALOG & COLLECTION ====================
+
+// Catalog: top-level sales context (channel/market/storefront)
+model Catalog {
+  id          String   @id @default(uuid())
+  name        String
+  nameEn      String?
+  slug        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  collections Collection[]
+  catalogProducts CatalogProduct[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+// Collection: curated grouping inside a Catalog
+model Collection {
+  id          String   @id @default(uuid())
+  catalogId   String
+  catalog     Catalog  @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  name        String
+  nameEn      String?
+  slug        String   @unique
+  description String?
+  image       String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  collectionProducts CollectionProduct[]
+
+  @@index([slug])
+  @@index([catalogId])
+  @@index([isActive])
+}
+
+// Join table: Catalog M-N Product (product can exist in catalog without collection)
+model CatalogProduct {
+  id         String   @id @default(uuid())
+  catalogId  String
+  catalog    Catalog  @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  // Unique: one product per catalog
+  @@unique([catalogId, productId])
+  @@index([catalogId])
+  @@index([productId])
+}
+
+// Join table: Collection M-N Product (product can belong to multiple collections)
+model CollectionProduct {
+  id           String     @id @default(uuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  // Unique: one product per collection
+  @@unique([collectionId, productId])
+  @@index([collectionId])
+  @@index([productId])
+}
+
 model Product {
   id                  String        @id @default(uuid())
   name                String
@@ -115,6 +192,7 @@ model Product {
   careGuideEn         String?
   price               Decimal       @db.Decimal(12, 2)
   compareAtPrice      Decimal?      @db.Decimal(12, 2)
+  image               String?       // Main product image
   status              ProductStatus @default(ACTIVE)
   isFeatured          Boolean       @default(false)
   isNewArrival        Boolean       @default(false)
@@ -129,6 +207,8 @@ model Product {
   images               ProductImage[]
   homepageSectionProducts HomepageSectionProduct[]
   orderItems           OrderItem[]
+  catalogProducts      CatalogProduct[]
+  collectionProducts  CollectionProduct[]
 
   @@index([slug])
   @@index([categoryId])
@@ -163,14 +243,24 @@ model ProductVariant {
 }
 
 model ProductImage {
-  id        String   @id @default(uuid())
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  url       String
-  position  Int      @default(0)
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  objectKey   String?  // R2 object key - nullable for legacy data
+  publicUrl   String?  // Public URL - nullable for legacy data
+  sortOrder   Int      @default(0)
+  isPrimary   Boolean  @default(false)
+  altText     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) // Default for existing rows
 
+  // Legacy columns (for backward compatibility)
+  url       String?  // Old URL field - keeping for migration
+  position  Int?     @default(0)
+
+  // Indexes
   @@index([productId])
+  @@index([productId, sortOrder])
 }
 
 model CartItem {

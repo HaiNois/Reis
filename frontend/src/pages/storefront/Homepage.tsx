@@ -5,7 +5,9 @@ import {
   homepageSectionApi,
   feedbackApi,
   HomepageSection,
+  ProductImage as HomepageProductImage,
 } from "@/services/homepageApi";
+import { FALLBACK_IMAGE } from "@/services/productApi";
 import {
   Carousel,
   CarouselContent,
@@ -13,6 +15,18 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+
+// Helper to get main image URL from various formats
+function getProductImageUrl(images: HomepageProductImage[] | undefined): string {
+  if (!images || images.length === 0) return FALLBACK_IMAGE
+
+  // Sort by position (legacy format)
+  const sorted = [...images].sort((a, b) => a.position - b.position)
+  const mainImage = sorted[0]
+
+  // Support both legacy (url) and new format (publicUrl)
+  return mainImage?.url || mainImage?.publicUrl || FALLBACK_IMAGE
+}
 
 // ==================== SECTION RENDERERS ====================
 
@@ -154,10 +168,7 @@ function ProductRailSection({ section }: { section: HomepageSection }) {
                 >
                   <div className="product-card__image aspect-[3/4]">
                     <img
-                      src={
-                        product.images?.[0]?.url ||
-                        "/images/products/placeholder.jpg"
-                      }
+                      src={getProductImageUrl(product.images)}
                       alt={
                         lang === "en" && product.nameEn
                           ? product.nameEn

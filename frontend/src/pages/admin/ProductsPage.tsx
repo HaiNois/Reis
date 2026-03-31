@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { productApi, Product } from '@/services/productApi'
+import { ImageUpload } from '@/components/ui/image-upload'
 
 export default function ProductsPage() {
   const { t } = useTranslation()
@@ -17,6 +18,7 @@ export default function ProductsPage() {
     price: 0,
     compareAtPrice: 0,
     status: 'ACTIVE' as 'ACTIVE' | 'DRAFT' | 'ARCHIVED',
+    image: '',
   })
 
   useEffect(() => {
@@ -53,6 +55,7 @@ export default function ProductsPage() {
         price: 0,
         compareAtPrice: 0,
         status: 'ACTIVE',
+        image: '',
       })
       fetchProducts()
     } catch (error) {
@@ -82,6 +85,7 @@ export default function ProductsPage() {
       price: product.price,
       compareAtPrice: product.compareAtPrice || 0,
       status: product.status,
+      image: product.image || '',
     })
     setShowModal(true)
   }
@@ -110,6 +114,7 @@ export default function ProductsPage() {
               price: 0,
               compareAtPrice: 0,
               status: 'ACTIVE',
+              image: '',
             })
             setShowModal(true)
           }}
@@ -219,6 +224,14 @@ export default function ProductsPage() {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                  <ImageUpload
+                    value={formData.image}
+                    onChange={(url) => setFormData({ ...formData, image: url })}
                   />
                 </div>
 

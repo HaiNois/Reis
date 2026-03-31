@@ -19,6 +19,7 @@ import OrdersPage from './pages/admin/OrdersPage'
 import BannersPage from './pages/admin/BannersPage'
 import HomepageSectionsPage from './pages/admin/HomepageSectionsPage'
 import FeedbackPage from './pages/admin/FeedbackPage'
+import CollectionsPage from './pages/admin/CollectionsPage'
 import { Toaster } from '@/components/ui/toaster'
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
           <Route index element={<DashboardPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
+          <Route path="collections" element={<CollectionsPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="banners" element={<BannersPage />} />
           <Route path="homepage-sections" element={<HomepageSectionsPage />} />

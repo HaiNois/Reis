@@ -23,6 +23,9 @@ import productAdminRoutes from './modules/product/admin.routes.js'
 import categoryAdminRoutes from './modules/product/category-admin.routes.js'
 import bannerAdminRoutes from './modules/banner/admin.routes.js'
 import feedbackRoutes from './modules/feedback/feedback.routes.js'
+import uploadRoutes from './modules/upload/upload.routes.js'
+import collectionRoutes from './modules/collection/collection.routes.js'
+import catalogRoutes from './modules/catalog/catalog.routes.js'
 
 const app = express()
 
@@ -71,10 +74,20 @@ app.use('/api/v1/admin/products', productAdminRoutes)
 app.use('/api/v1/admin/categories', categoryAdminRoutes)
 app.use('/api/v1/admin/banners', bannerAdminRoutes)
 app.use('/api/v1/admin/homepage-sections', homepageRoutes)
+app.use('/api/v1/admin/orders', orderRoutes)
 
 // Storefront routes
 app.use('/api/v1/storefront/homepage', homepageStorefrontRoutes)
 app.use('/api/v1/admin/feedback', feedbackRoutes)
+
+// Upload routes
+app.use('/api/v1/upload', uploadRoutes)
+
+// Collection routes
+app.use('/api/v1/collections', collectionRoutes)
+
+// Catalog routes
+app.use('/api/v1', catalogRoutes)
 
 // Error handling
 app.use(errorHandler)

@@ -77,7 +77,8 @@ export interface SectionProduct {
 
 export interface ProductImage {
   id: string
-  url: string
+  url?: string
+  publicUrl?: string
   position: number
 }
 

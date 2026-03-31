@@ -321,13 +321,17 @@ export class ProductService {
 
   // Categories
   async getCategories() {
-    return prisma.category.findMany({
-      where: { parentId: null },
-      include: {
-        children: true,
-        _count: { select: { products: true } },
-      },
-    })
+    try {
+      return await prisma.category.findMany({
+        where: { parentId: null },
+        include: {
+          children: true,
+        },
+      })
+    } catch (error) {
+      console.error('getCategories error:', error)
+      throw error
+    }
   }
 
   async getCategoryBySlug(slug: string) {

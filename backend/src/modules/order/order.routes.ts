@@ -4,17 +4,17 @@ import { authenticate, requireAdmin } from '../../shared/middlewares/auth.js'
 
 const router = Router()
 
-// Public routes
+// Public routes - mounted at /api/v1/orders
 router.post('/orders', orderController.createOrder)
 
-// Protected routes
-router.get('/orders', authenticate, orderController.getOrders)
-router.get('/orders/:orderNumber', authenticate, orderController.getOrderByNumber)
-router.post('/orders/:id/cancel', authenticate, orderController.cancelOrder)
+// Admin routes - mounted at /api/v1/admin/orders (no /orders prefix needed)
+router.get('/stats', authenticate, requireAdmin, orderController.getOrderStats)
+router.get('/', authenticate, requireAdmin, orderController.getAllOrders)
+router.patch('/:id/status', authenticate, requireAdmin, orderController.updateOrderStatus)
 
-// Admin routes
-router.get('/admin/orders', authenticate, requireAdmin, orderController.getAllOrders)
-router.get('/admin/orders/stats', authenticate, requireAdmin, orderController.getOrderStats)
-router.patch('/admin/orders/:id/status', authenticate, requireAdmin, orderController.updateOrderStatus)
+// Protected user routes - mounted at /api/v1/orders
+router.get('/', authenticate, orderController.getOrders)
+router.get('/:orderNumber', authenticate, orderController.getOrderByNumber)
+router.post('/:id/cancel', authenticate, orderController.cancelOrder)
 
 export default router
