@@ -196,6 +196,7 @@ model Product {
   status              ProductStatus @default(ACTIVE)
   isFeatured          Boolean       @default(false)
   isNewArrival        Boolean       @default(false)
+  isDelete            Boolean       @default(false)
   categoryId          String?
   category            Category?     @relation(fields: [categoryId], references: [id])
   createdAt           DateTime      @default(now())
@@ -215,6 +216,7 @@ model Product {
   @@index([status])
   @@index([isFeatured])
   @@index([isNewArrival])
+  @@index([isDelete])
   @@index([deletedAt])
 }
 

@@ -2,9 +2,16 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { bannerApi, Banner } from '@/services/productApi'
 import { showToast, handleApiError } from '@/utils/toast'
+import { Spinner } from '@/components/ui/spinner'
+import { useConfirm } from '@/components/providers/confirm-provider'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 export default function BannersPage() {
   const { t } = useTranslation()
+  const { confirm } = useConfirm()
   const [banners, setBanners] = useState<Banner[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -58,7 +65,14 @@ export default function BannersPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this banner?')) return
+    const confirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Banner',
+      description: 'Are you sure you want to delete this banner?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    })
+    if (!confirmed) return
     try {
       await bannerApi.deleteBanner(id)
       fetchBanners()
@@ -83,7 +97,7 @@ export default function BannersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-2 border-black border-t-transparent rounded-full" />
+        <Spinner size="lg" className="text-black" />
       </div>
     )
   }
@@ -160,58 +174,58 @@ export default function BannersPage() {
                 {editingBanner ? 'Edit Banner' : 'Add Banner'}
               </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="subtitle">Subtitle</Label>
+                  <Input
+                    id="subtitle"
                     type="text"
                     value={formData.subtitle}
                     onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="image">Image URL</Label>
+                  <Input
+                    id="image"
                     type="url"
                     value={formData.image}
                     onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                     placeholder="https://..."
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Link (optional)</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="link">Link (optional)</Label>
+                  <Input
+                    id="link"
                     type="url"
                     value={formData.link}
                     onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     placeholder="/products"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="position">Position</Label>
+                    <Input
+                      id="position"
                       type="number"
                       value={formData.position}
                       onChange={(e) => setFormData({ ...formData, position: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
                   <div className="flex items-center mt-6">
-                    <label className="flex items-center">
+                    <Label className="flex items-center cursor-pointer">
                       <input
                         type="checkbox"
                         checked={formData.isActive}
@@ -219,23 +233,16 @@ export default function BannersPage() {
                         className="mr-2"
                       />
                       Active
-                    </label>
+                    </Label>
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
+                  <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                     {t('common.cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-                  >
+                  </Button>
+                  <Button type="submit">
                     {t('common.save')}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>

@@ -15,7 +15,9 @@ export class ProductService {
   async getProducts(filters: ProductFilters) {
     const { category, minPrice, maxPrice, status, isFeatured, isNewArrival, search, sort, page, limit } = filters
 
-    const where: any = {}
+    const where: any = {
+      isDelete: false,
+    }
 
     if (category) {
       where.category = { slug: category }
@@ -186,7 +188,7 @@ export class ProductService {
     // Soft delete
     return prisma.product.update({
       where: { id },
-      data: { deletedAt: new Date() },
+      data: { isDelete: true },
     })
   }
 
@@ -199,7 +201,7 @@ export class ProductService {
 
     return prisma.product.update({
       where: { id },
-      data: { deletedAt: null },
+      data: { isDelete: false },
     })
   }
 

@@ -1,18 +1,27 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { homepageSectionApi, HomepageSection, HomepageSectionType } from '@/services/homepageApi'
-import { productApi, Product } from '@/services/productApi'
+import { productApi, Product, Collection } from '@/services/productApi'
 import { showToast, handleApiError } from '@/utils/toast'
+import { Spinner } from '@/components/ui/spinner'
+import { useConfirm } from '@/components/providers/confirm-provider'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { ImageUpload } from '@/components/ui/image-upload'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 const SECTION_TYPES: { value: HomepageSectionType; label: string; labelVi: string; icon: string }[] = [
   { value: 'ANNOUNCEMENT_BAR', label: 'Announcement Bar', labelVi: 'Thanh thông báo', icon: '📢' },
   { value: 'HERO', label: 'Hero', labelVi: 'Banner chính', icon: '🖼️' },
   { value: 'PRODUCT_RAIL', label: 'Product Rail', labelVi: 'Danh sách sản phẩm', icon: '👕' },
   { value: 'MEDIA_TILES', label: 'Media Tiles', labelVi: 'Ô hình ảnh', icon: '🖼️' },
+  { value: 'NEW_SEASON_ARRIVALS', label: 'New Season Arrivals', labelVi: 'Bộ sưu tập mới', icon: '✨' },
 ]
 
 export default function HomepageSectionsPage() {
   const { t, i18n } = useTranslation()
+  const { confirm } = useConfirm()
   const lang = i18n.language || 'vi'
   const [sections, setSections] = useState<HomepageSection[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,8 +30,22 @@ export default function HomepageSectionsPage() {
   const [showProductModal, setShowProductModal] = useState(false)
   const [editingSection, setEditingSection] = useState<HomepageSection | null>(null)
   const [availableProducts, setAvailableProducts] = useState<Product[]>([])
+  const [availableCollections, setAvailableCollections] = useState<Collection[]>([])
   const [searchProducts, setSearchProducts] = useState('')
   const [filterType, setFilterType] = useState<string>('')
+
+  // Fetch collections for MEDIA_TILES section
+  useEffect(() => {
+    const fetchCollections = async () => {
+      try {
+        const response = await productApi.getCollections()
+        setAvailableCollections(response.data || [])
+      } catch (error) {
+        handleApiError(error, 'Failed to fetch collections')
+      }
+    }
+    fetchCollections()
+  }, [])
 
   const [formData, setFormData] = useState({
     sectionType: 'HERO' as HomepageSectionType,
@@ -85,7 +108,14 @@ export default function HomepageSectionsPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('admin.confirmDelete'))) return
+    const confirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Section',
+      description: 'Are you sure you want to delete this section? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    })
+    if (!confirmed) return
     try {
       await homepageSectionApi.deleteSection(id)
       showToast.success('Section deleted successfully')
@@ -178,7 +208,7 @@ export default function HomepageSectionsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-2 border-black border-t-transparent rounded-full" />
+        <Spinner size="lg" className="text-black" />
       </div>
     )
   }
@@ -323,9 +353,10 @@ export default function HomepageSectionsPage() {
               </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.type')} *</label>
+                  <div className="space-y-2">
+                    <Label htmlFor="sectionType">{t('admin.type')} *</Label>
                     <select
+                      id="sectionType"
                       value={formData.sectionType}
                       onChange={(e) => setFormData({ ...formData, sectionType: e.target.value as HomepageSectionType })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -338,20 +369,21 @@ export default function HomepageSectionsPage() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.sortOrder')}</label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="sortOrder">{t('admin.sortOrder')}</Label>
+                    <Input
+                      id="sortOrder"
                       type="number"
                       value={formData.sortOrder}
                       onChange={(e) => setFormData({ ...formData, sortOrder: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.title')}</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="title">{t('admin.title')}</Label>
+                  <Input
+                    id="title"
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({
@@ -359,34 +391,34 @@ export default function HomepageSectionsPage() {
                       title: e.target.value,
                       slug: formData.slug || e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.slug')} *</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="slug">{t('admin.slug')} *</Label>
+                  <Input
+                    id="slug"
                     type="text"
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.subtitle')}</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="subtitle">{t('admin.subtitle')}</Label>
+                  <Input
+                    id="subtitle"
                     type="text"
                     value={formData.subtitle}
                     onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.description')}</label>
+                <div className="space-y-2">
+                  <Label htmlFor="description">{t('admin.description')}</Label>
                   <textarea
+                    id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
@@ -395,9 +427,10 @@ export default function HomepageSectionsPage() {
                 </div>
 
                 {['PRODUCT_RAIL', 'MEDIA_TILES'].includes(formData.sectionType) && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Layout</label>
+                  <div className="space-y-2">
+                    <Label htmlFor="layout">Layout</Label>
                     <select
+                      id="layout"
                       value={formData.layout}
                       onChange={(e) => setFormData({ ...formData, layout: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -409,22 +442,22 @@ export default function HomepageSectionsPage() {
                 )}
 
                 <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.startsAt')}</label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="startsAt">{t('admin.startsAt')}</Label>
+                    <Input
+                      id="startsAt"
                       type="datetime-local"
                       value={formData.startsAt}
                       onChange={(e) => setFormData({ ...formData, startsAt: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.endsAt')}</label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="endsAt">{t('admin.endsAt')}</Label>
+                    <Input
+                      id="endsAt"
                       type="datetime-local"
                       value={formData.endsAt}
                       onChange={(e) => setFormData({ ...formData, endsAt: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
                 </div>
@@ -437,9 +470,9 @@ export default function HomepageSectionsPage() {
                     onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                     className="w-4 h-4"
                   />
-                  <label htmlFor="isActive" className="text-sm text-gray-700">
+                  <Label htmlFor="isActive" className="text-sm text-gray-700">
                     {t('common.active')}
-                  </label>
+                  </Label>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4">
@@ -515,16 +548,28 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
     linkTarget: 'SELF',
     isActive: true,
     sortOrder: 0,
+    // For PRODUCT type
+    selectedProductId: '',
+    // For COLLECTION type
+    selectedCollectionId: '',
+    // For BANNER type (New Season Arrivals)
+    selectedImageUrl: '',
   })
 
   const getItemTypeOptions = () => {
     switch (section.sectionType) {
       case 'ANNOUNCEMENT_BAR':
         return [{ value: 'ANNOUNCEMENT', label: 'Announcement' }]
+      case 'HERO':
+        return [{ value: 'BANNER', label: 'Hero Banner' }]
+      case 'PRODUCT_RAIL':
+        return [{ value: 'PRODUCT', label: 'Product' }]
       case 'MEDIA_TILES':
-        return [{ value: 'MEDIA_TILE', label: 'Media Tile' }]
+        return [{ value: 'COLLECTION', label: 'Collection' }]
+      case 'NEW_SEASON_ARRIVALS':
+        return [{ value: 'BANNER', label: 'Banner Image' }]
       default:
-        return []
+        return [{ value: 'MEDIA_TILE', label: 'Media Tile' }]
     }
   }
 
@@ -553,7 +598,14 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
   }
 
   const handleDelete = async (itemId: string) => {
-    if (!confirm(t('admin.confirmDelete'))) return
+    const confirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Item',
+      description: 'Are you sure you want to delete this item?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    })
+    if (!confirmed) return
     try {
       await homepageSectionApi.deleteItem(section.id, itemId)
       const updated = await homepageSectionApi.getSectionById(section.id)
@@ -653,11 +705,14 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
               <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
                 <h4 className="text-lg font-bold mb-4">{editingItem ? 'Edit Item' : 'Add Item'}</h4>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <div className="space-y-2">
+                    <Label htmlFor="itemType">Type</Label>
                     <select
+                      id="itemType"
                       value={itemForm.itemType}
-                      onChange={(e) => setItemForm({ ...itemForm, itemType: e.target.value })}
+                      onChange={(e) => {
+                        setItemForm({ ...itemForm, itemType: e.target.value })
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     >
                       {getItemTypeOptions().map(opt => (
@@ -666,80 +721,148 @@ function SectionItemsEditor({ section, onClose }: { section: HomepageSection; on
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                    <input
-                      type="text"
-                      value={itemForm.title}
-                      onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      required
-                    />
-                  </div>
+                  {/* PRODUCT: Product Selector */}
+                  {itemForm.itemType === 'PRODUCT' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="selectedProduct">Select Product</Label>
+                      <select
+                        id="selectedProduct"
+                        value={itemForm.selectedProductId}
+                        onChange={(e) => {
+                          const product = availableProducts.find(p => p.id === e.target.value)
+                          setItemForm({
+                            ...itemForm,
+                            selectedProductId: e.target.value,
+                            title: product?.name || '',
+                            mediaUrl: product?.image || '',
+                          })
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      >
+                        <option value="">Select a product</option>
+                        {availableProducts.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} - {Number(p.price).toLocaleString('vi-VN')} ₫
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
-                    <input
-                      type="text"
-                      value={itemForm.subtitle}
-                      onChange={(e) => setItemForm({ ...itemForm, subtitle: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  </div>
+                  {/* COLLECTION: Collection Selector */}
+                  {itemForm.itemType === 'COLLECTION' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="selectedCollection">Select Collection</Label>
+                      <select
+                        id="selectedCollection"
+                        value={itemForm.selectedCollectionId}
+                        onChange={(e) => {
+                          const collection = availableCollections.find(c => c.id === e.target.value)
+                          setItemForm({
+                            ...itemForm,
+                            selectedCollectionId: e.target.value,
+                            title: collection?.name || '',
+                            mediaUrl: collection?.image || '',
+                            ctaUrl: `/collections/${collection?.slug}`,
+                          })
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      >
+                        <option value="">Select a collection</option>
+                        {availableCollections.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                      <input
-                        type="url"
-                        value={itemForm.mediaUrl}
-                        onChange={(e) => setItemForm({ ...itemForm, mediaUrl: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  {/* BANNER: Image Upload for New Season Arrivals */}
+                  {itemForm.itemType === 'BANNER' && (
+                    <div className="space-y-2">
+                      <Label>Banner Image</Label>
+                      <ImageUpload
+                        value={itemForm.selectedImageUrl}
+                        onChange={(url) => setItemForm({ ...itemForm, selectedImageUrl: url })}
+                        multiple={false}
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Image</label>
-                      <input
-                        type="url"
-                        value={itemForm.mobileMediaUrl}
-                        onChange={(e) => setItemForm({ ...itemForm, mobileMediaUrl: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      />
-                    </div>
-                  </div>
+                  )}
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">CTA Label</label>
-                      <input
-                        type="text"
-                        value={itemForm.ctaLabel}
-                        onChange={(e) => setItemForm({ ...itemForm, ctaLabel: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">CTA URL</label>
-                      <input
-                        type="url"
-                        value={itemForm.ctaUrl}
-                        onChange={(e) => setItemForm({ ...itemForm, ctaUrl: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      />
-                    </div>
-                  </div>
+                  {/* Common fields for MEDIA_TILE, ANNOUNCEMENT */}
+                  {['MEDIA_TILE', 'ANNOUNCEMENT'].includes(itemForm.itemType) && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="itemTitle">Title *</Label>
+                        <Input
+                          id="itemTitle"
+                          type="text"
+                          value={itemForm.title}
+                          onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })}
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="itemSubtitle">Subtitle</Label>
+                        <Input
+                          id="itemSubtitle"
+                          type="text"
+                          value={itemForm.subtitle}
+                          onChange={(e) => setItemForm({ ...itemForm, subtitle: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="mediaUrl">Image URL</Label>
+                          <Input
+                            id="mediaUrl"
+                            type="url"
+                            value={itemForm.mediaUrl}
+                            onChange={(e) => setItemForm({ ...itemForm, mediaUrl: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="mobileMediaUrl">Mobile Image</Label>
+                          <Input
+                            id="mobileMediaUrl"
+                            type="url"
+                            value={itemForm.mobileMediaUrl}
+                            onChange={(e) => setItemForm({ ...itemForm, mobileMediaUrl: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="ctaLabel">CTA Label</Label>
+                          <Input
+                            id="ctaLabel"
+                            type="text"
+                            value={itemForm.ctaLabel}
+                            onChange={(e) => setItemForm({ ...itemForm, ctaLabel: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="ctaUrl">CTA URL</Label>
+                          <Input
+                            id="ctaUrl"
+                            type="url"
+                            value={itemForm.ctaUrl}
+                            onChange={(e) => setItemForm({ ...itemForm, ctaUrl: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <div className="flex justify-end gap-3 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowModal(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    >
+                    <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                       Cancel
-                    </button>
-                    <button type="submit" className="px-4 py-2 bg-black text-white rounded-lg">
+                    </Button>
+                    <Button type="submit">
                       Save
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </div>
@@ -879,9 +1002,10 @@ function ProductRailEditor({
               <div className="bg-white rounded-lg shadow-xl w-full max-w-xl p-6">
                 <h4 className="text-lg font-bold mb-4">Add Product</h4>
                 <form onSubmit={handleAddProduct} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Product *</label>
+                  <div className="space-y-2">
+                    <Label htmlFor="selectProduct">Select Product *</Label>
                     <select
+                      id="selectProduct"
                       value={productForm.productId}
                       onChange={(e) => setProductForm({ ...productForm, productId: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -896,28 +1020,24 @@ function ProductRailEditor({
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Badge Text</label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="badgeText">Badge Text</Label>
+                    <Input
+                      id="badgeText"
                       type="text"
                       value={productForm.badgeText}
                       onChange={(e) => setProductForm({ ...productForm, badgeText: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                       placeholder="e.g., Sale, New, Best Seller"
                     />
                   </div>
 
                   <div className="flex justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowModal(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg"
-                    >
+                    <Button type="button" variant="outline" onClick={() => setShowProductModal(false)}>
                       Cancel
-                    </button>
-                    <button type="submit" className="px-4 py-2 bg-black text-white rounded-lg">
+                    </Button>
+                    <Button type="submit">
                       Add
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </div>
@@ -925,9 +1045,9 @@ function ProductRailEditor({
           )}
 
           <div className="flex justify-end pt-4">
-            <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            <Button variant="outline" onClick={onClose}>
               {t('common.close')}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

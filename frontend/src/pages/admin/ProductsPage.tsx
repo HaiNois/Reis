@@ -1,11 +1,85 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ColumnDef } from '@tanstack/react-table'
 import { productApi, Product } from '@/services/productApi'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { showToast, handleApiError } from '@/utils/toast'
+import { Spinner } from '@/components/ui/spinner'
+import { DataTable } from '@/components/ui/data-table'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useConfirm } from '@/components/providers/confirm-provider'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Pencil, Trash2, Plus } from 'lucide-react'
+
+// Define columns for products table
+const productColumns = (t: Function, openEdit: (product: Product) => void, handleDelete: (id: string) => void): ColumnDef<Product>[] => [
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    cell: ({ row }) => (
+      <div>
+        <div className="font-medium">{row.original.name}</div>
+        <div className="text-sm text-muted-foreground">{row.original.slug}</div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'price',
+    header: 'Price',
+    cell: ({ row }) => (
+      <span className="font-medium">{Number(row.original.price).toLocaleString('vi-VN')} ₫</span>
+    ),
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => {
+      const status = row.original.status
+      return (
+        <Badge variant={
+          status === 'ACTIVE' ? 'default' :
+          status === 'DRAFT' ? 'secondary' :
+          'outline'
+        } className={
+          status === 'ACTIVE' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
+          status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
+          ''
+        }>
+          {status}
+        </Badge>
+      )
+    },
+  },
+  {
+    accessorKey: 'variants',
+    header: 'Variants',
+    cell: ({ row }) => <span>{row.original.variants?.length || 0} variants</span>,
+  },
+  {
+    id: 'actions',
+    header: () => <div className="text-right">Actions</div>,
+    cell: ({ row }) => (
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={() => openEdit(row.original)}>
+          <Pencil className="h-4 w-4 mr-1" />
+          {t('common.edit')}
+        </Button>
+        <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id)}>
+          <Trash2 className="h-4 w-4 mr-1" />
+          {t('common.delete')}
+        </Button>
+      </div>
+    ),
+  },
+]
 
 export default function ProductsPage() {
   const { t } = useTranslation()
+  const { confirm } = useConfirm()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -21,6 +95,11 @@ export default function ProductsPage() {
     status: 'ACTIVE' as 'ACTIVE' | 'DRAFT' | 'ARCHIVED',
     image: '',
   })
+
+  // Form validation
+  const isFormValid = formData.name.trim().length > 0 &&
+    formData.slug.trim().length > 0 &&
+    formData.price > 0
 
   useEffect(() => {
     fetchProducts()
@@ -67,10 +146,17 @@ export default function ProductsPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return
+    const confirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Product',
+      description: 'Are you sure you want to delete this product? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    })
+    if (!confirmed) return
     try {
-      await productApi.deleteProduct(id)
-      showToast.success('Product deleted successfully')
+      const response = await productApi.deleteProduct(id)
+      showToast.success(response.data?.message || 'Product deleted successfully')
       fetchProducts()
     } catch (error) {
       handleApiError(error, 'Failed to delete product')
@@ -93,227 +179,170 @@ export default function ProductsPage() {
     setShowModal(true)
   }
 
+  const resetForm = () => {
+    setEditingProduct(null)
+    setFormData({
+      name: '',
+      slug: '',
+      description: '',
+      material: '',
+      careGuide: '',
+      price: 0,
+      compareAtPrice: 0,
+      status: 'ACTIVE',
+      image: '',
+    })
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-2 border-black border-t-transparent rounded-full" />
+        <Spinner size="lg" className="text-black" />
       </div>
     )
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">{t('admin.products')}</h2>
-        <button
-          onClick={() => {
-            setEditingProduct(null)
-            setFormData({
-              name: '',
-              slug: '',
-              description: '',
-              material: '',
-              careGuide: '',
-              price: 0,
-              compareAtPrice: 0,
-              status: 'ACTIVE',
-              image: '',
-            })
-            setShowModal(true)
-          }}
-          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-        >
-          + {t('admin.addProduct')}
-        </button>
-      </div>
-
-      {/* Products Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Variants</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {products.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <div className="font-medium text-gray-900">{product.name}</div>
-                  <div className="text-sm text-gray-500">{product.slug}</div>
-                </td>
-                <td className="px-6 py-4 text-gray-900">
-                  {Number(product.price).toLocaleString('vi-VN')} ₫
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    product.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                    product.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {product.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-gray-500">
-                  {product.variants?.length || 0} variants
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button
-                    onClick={() => openEdit(product)}
-                    className="text-blue-600 hover:text-blue-800 mr-3"
-                  >
-                    {t('common.edit')}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    {t('common.delete')}
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {products.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                  No products found. Add your first product!
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-2xl font-bold">{t('admin.products')}</CardTitle>
+          <Button onClick={() => { resetForm(); setShowModal(true) }}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('admin.addProduct')}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={productColumns(t, openEdit, handleDelete)}
+            data={products}
+            pageSize={10}
+          />
+        </CardContent>
+      </Card>
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                {editingProduct ? t('admin.editProduct') : t('admin.addProduct')}
-              </h3>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                    <input
-                      type="text"
-                      value={formData.slug}
-                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
-                  <ImageUpload
-                    value={formData.image}
-                    onChange={(url) => setFormData({ ...formData, image: url })}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Price (VND)</label>
-                    <input
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Compare Price</label>
-                    <input
-                      type="number"
-                      value={formData.compareAtPrice}
-                      onChange={(e) => setFormData({ ...formData, compareAtPrice: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Material</label>
-                    <input
-                      type="text"
-                      value={formData.material}
-                      onChange={(e) => setFormData({ ...formData, material: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    >
-                      <option value="ACTIVE">Active</option>
-                      <option value="DRAFT">Draft</option>
-                      <option value="ARCHIVED">Archived</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Care Guide</label>
-                  <textarea
-                    value={formData.careGuide}
-                    onChange={(e) => setFormData({ ...formData, careGuide: e.target.value })}
-                    rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-                  >
-                    {t('common.save')}
-                  </button>
-                </div>
-              </form>
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingProduct ? t('admin.editProduct') : t('admin.addProduct')}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug</Label>
+                <Input
+                  id="slug"
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  required
+                />
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Images</Label>
+              <ImageUpload
+                value={formData.image}
+                onChange={(url) => setFormData({ ...formData, image: url })}
+                multiple={true}
+                maxImages={10}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">Price (VND)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="compareAtPrice">Compare Price</Label>
+                <Input
+                  id="compareAtPrice"
+                  type="number"
+                  value={formData.compareAtPrice}
+                  onChange={(e) => setFormData({ ...formData, compareAtPrice: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="material">Material</Label>
+                <Input
+                  id="material"
+                  type="text"
+                  value={formData.material}
+                  onChange={(e) => setFormData({ ...formData, material: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <select
+                  id="status"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="ACTIVE">Active</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="ARCHIVED">Archived</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="careGuide">Care Guide</Label>
+              <textarea
+                id="careGuide"
+                value={formData.careGuide}
+                onChange={(e) => setFormData({ ...formData, careGuide: e.target.value })}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" type="button" onClick={() => setShowModal(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button type="submit" disabled={!isFormValid}>
+                {t('common.save')}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

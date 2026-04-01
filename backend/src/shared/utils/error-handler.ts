@@ -52,7 +52,9 @@ export class BadRequestError extends AppError {
 // Error handler function
 export function errorHandler(
   err: Error | AppError,
-  res: any
+  req: any,
+  res: any,
+  next: any
 ): void {
   if (err instanceof ZodError) {
     const details = err.errors.map((e) => ({

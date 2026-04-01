@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/stores/cartStore'
 import { productApi, getMainImageUrl, getThumbnailImages, getImageUrl, FALLBACK_IMAGE, ProductImage } from '@/services/productApi'
 import { showToast } from '@/utils/toast'
+import { Spinner } from '@/components/ui/spinner'
 
 export default function ProductPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -90,7 +91,7 @@ export default function ProductPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-2 border-black border-t-transparent rounded-full" />
+        <Spinner size="lg" className="text-black" />
       </div>
     )
   }

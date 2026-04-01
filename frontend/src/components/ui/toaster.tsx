@@ -13,7 +13,7 @@ export function Toaster({ theme = "light" }: ToasterProps) {
         classNames: {
           toast:
             "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toaster]:text-muted-foreground",
+          description: "group-[.toaster]:text-muted-foreground text-red-500",
           actionButton:
             "group-[.toaster]:bg-primary group-[.toaster]:text-primary-foreground",
           cancelButton:

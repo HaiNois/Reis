@@ -7,8 +7,9 @@ export type HomepageSectionType =
   | 'HERO'
   | 'PRODUCT_RAIL'
   | 'MEDIA_TILES'
+  | 'NEW_SEASON_ARRIVALS'
 
-export type HomepageItemType = 'ANNOUNCEMENT' | 'MEDIA_TILE'
+export type HomepageItemType = 'ANNOUNCEMENT' | 'MEDIA_TILE' | 'PRODUCT' | 'COLLECTION' | 'BANNER'
 
 export type MediaType = 'IMAGE' | 'VIDEO'
 

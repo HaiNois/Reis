@@ -2,9 +2,16 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { categoryApi, Category } from '@/services/productApi'
 import { showToast, handleApiError } from '@/utils/toast'
+import { Spinner } from '@/components/ui/spinner'
+import { useConfirm } from '@/components/providers/confirm-provider'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 export default function CategoriesPage() {
   const { t } = useTranslation()
+  const { confirm } = useConfirm()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -49,7 +56,14 @@ export default function CategoriesPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this category?')) return
+    const confirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Category',
+      description: 'Are you sure you want to delete this category? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    })
+    if (!confirmed) return
     try {
       await categoryApi.deleteCategory(id)
       fetchCategories()
@@ -72,7 +86,7 @@ export default function CategoriesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-2 border-black border-t-transparent rounded-full" />
+        <Spinner size="lg" className="text-black" />
       </div>
     )
   }
@@ -144,9 +158,10 @@ export default function CategoriesPage() {
                 {editingCategory ? 'Edit Category' : 'Add Category'}
               </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({
@@ -154,53 +169,46 @@ export default function CategoriesPage() {
                       name: e.target.value,
                       slug: e.target.value.toLowerCase().replace(/\s+/g, '-')
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="slug">Slug</Label>
+                  <Input
+                    id="slug"
                     type="text"
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
                   <textarea
+                    id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="image">Image URL</Label>
+                  <Input
+                    id="image"
                     type="url"
                     value={formData.image}
                     onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     placeholder="https://..."
                   />
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
+                  <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                     {t('common.cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-                  >
+                  </Button>
+                  <Button type="submit">
                     {t('common.save')}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>

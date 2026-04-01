@@ -1,10 +1,77 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ColumnDef } from '@tanstack/react-table'
 import { collectionApi, catalogApi, productApi, Collection, Catalog, Product } from '@/services/productApi'
 import { showToast, handleApiError } from '@/utils/toast'
+import { Spinner } from '@/components/ui/spinner'
+import { DataTable } from '@/components/ui/data-table'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useConfirm } from '@/components/providers/confirm-provider'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Pencil, Trash2, Package, Plus } from 'lucide-react'
+
+// Define columns for collections table
+const collectionColumns = (t: Function, openProductModal: (collection: Collection) => void, openEdit: (collection: Collection) => void, handleDelete: (id: string) => void): ColumnDef<Collection>[] => [
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    cell: ({ row }) => (
+      <div>
+        <div className="font-medium">{row.original.name}</div>
+        {row.original.nameEn && (
+          <div className="text-sm text-muted-foreground">{row.original.nameEn}</div>
+        )}
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'slug',
+    header: 'Slug',
+    cell: ({ row }) => <span>{row.original.slug}</span>,
+  },
+  {
+    accessorKey: 'isActive',
+    header: 'Status',
+    cell: ({ row }) => (
+      <Badge variant={row.original.isActive ? 'default' : 'outline'} className={row.original.isActive ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}>
+        {row.original.isActive ? 'Active' : 'Inactive'}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: 'sortOrder',
+    header: 'Sort Order',
+    cell: ({ row }) => <span>{row.original.sortOrder || 0}</span>,
+  },
+  {
+    id: 'actions',
+    header: () => <div className="text-right">Actions</div>,
+    cell: ({ row }) => (
+      <div className="text-right">
+        <Button variant="ghost" size="sm" onClick={() => openProductModal(row.original)} className="mr-2">
+          <Package className="h-4 w-4 mr-1" />
+          Products
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => openEdit(row.original)} className="mr-2">
+          <Pencil className="h-4 w-4 mr-1" />
+          {t('common.edit')}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => handleDelete(row.original.id)} className="text-red-600 hover:text-red-800">
+          <Trash2 className="h-4 w-4 mr-1" />
+          {t('common.delete')}
+        </Button>
+      </div>
+    ),
+  },
+]
 
 export default function CollectionsPage() {
   const { t } = useTranslation()
+  const { confirm } = useConfirm()
   const [collections, setCollections] = useState<Collection[]>([])
   const [catalogs, setCatalogs] = useState<Catalog[]>([])
   const [loading, setLoading] = useState(true)
@@ -123,7 +190,14 @@ export default function CollectionsPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this collection?')) return
+    const confirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Collection',
+      description: 'Are you sure you want to delete this collection? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    })
+    if (!confirmed) return
     try {
       await collectionApi.deleteCollection(id)
       fetchCollections()
@@ -158,128 +232,63 @@ export default function CollectionsPage() {
   if (loading && collections.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-2 border-black border-t-transparent rounded-full" />
+        <Spinner size="lg" className="text-black" />
       </div>
     )
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">{t('admin.collections')}</h2>
-        <button
-          onClick={() => {
-            setEditingCollection(null)
-            setFormData({
-              name: '',
-              nameEn: '',
-              slug: '',
-              description: '',
-              image: '',
-              isActive: true,
-              sortOrder: 0,
-            })
-            setShowModal(true)
-          }}
-          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-        >
-          + {t('admin.addCollection')}
-        </button>
-      </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-2xl font-bold">{t('admin.collections')}</CardTitle>
+          <Button onClick={() => { setEditingCollection(null); setFormData({ name: '', nameEn: '', slug: '', description: '', image: '', isActive: true, sortOrder: 0 }); setShowModal(true) }}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('admin.addCollection')}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {/* Catalog Filter */}
+          <div className="mb-4">
+            <Label htmlFor="catalogSelect" className="mb-2">
+              Select Catalog
+            </Label>
+            <select
+              id="catalogSelect"
+              value={selectedCatalogId}
+              onChange={(e) => handleCatalogChange(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg w-64"
+            >
+              {catalogs.map((catalog) => (
+                <option key={catalog.id} value={catalog.id}>
+                  {catalog.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      {/* Catalog Filter */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Select Catalog
-        </label>
-        <select
-          value={selectedCatalogId}
-          onChange={(e) => handleCatalogChange(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg w-64"
-        >
-          {catalogs.map((catalog) => (
-            <option key={catalog.id} value={catalog.id}>
-              {catalog.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Collections Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sort Order</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {collections.map((collection) => (
-              <tr key={collection.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <div className="font-medium text-gray-900">{collection.name}</div>
-                  {collection.nameEn && (
-                    <div className="text-sm text-gray-500">{collection.nameEn}</div>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-gray-500">{collection.slug}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    collection.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {collection.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-gray-500">{collection.sortOrder || 0}</td>
-                <td className="px-6 py-4 text-right">
-                  <button
-                    onClick={() => openProductModal(collection)}
-                    className="text-green-600 hover:text-green-800 mr-3"
-                  >
-                    Products
-                  </button>
-                  <button
-                    onClick={() => openEdit(collection)}
-                    className="text-blue-600 hover:text-blue-800 mr-3"
-                  >
-                    {t('common.edit')}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(collection.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    {t('common.delete')}
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {collections.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                  No collections found. Add your first collection!
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          {/* Collections Table */}
+          <DataTable
+            columns={collectionColumns(t, openProductModal, openEdit, handleDelete)}
+            data={collections}
+            pageSize={10}
+          />
+        </CardContent>
+      </Card>
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                {editingCollection ? t('admin.editCollection') : t('admin.addCollection')}
-              </h3>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <input
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCollection ? t('admin.editCollection') : t('admin.addCollection')}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({
@@ -287,35 +296,35 @@ export default function CollectionsPage() {
                       name: e.target.value,
                       slug: generateSlug(e.target.value)
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name (English)</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="nameEn">Name (English)</Label>
+                  <Input
+                    id="nameEn"
                     type="text"
                     value={formData.nameEn}
                     onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="slug">Slug</Label>
+                  <Input
+                    id="slug"
                     type="text"
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
                   <textarea
+                    id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
@@ -323,29 +332,30 @@ export default function CollectionsPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="image">Image URL</Label>
+                  <Input
+                    id="image"
                     type="text"
                     value={formData.image}
                     onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="sortOrder">Sort Order</Label>
+                    <Input
+                      id="sortOrder"
                       type="number"
                       value={formData.sortOrder}
                       onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
                     <select
+                      id="status"
                       value={formData.isActive ? 'true' : 'false'}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'true' })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -357,115 +367,16 @@ export default function CollectionsPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
+                  <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                     {t('common.cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-                  >
+                  </Button>
+                  <Button type="submit">
                     {t('common.save')}
-                  </button>
+                  </Button>
                 </div>
               </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Product Modal */}
-      {showProductModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                Manage Products in Collection
-              </h3>
-
-              {loadingProducts ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin w-8 h-8 border-2 border-black border-t-transparent rounded-full" />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-gray-700 mb-2">Products in this collection:</h4>
-                    {collectionProducts.length === 0 ? (
-                      <p className="text-gray-500 text-sm">No products in this collection yet.</p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-2">
-                        {collectionProducts.map((product) => (
-                          <div key={product.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <span className="text-sm">{product.name}</span>
-                            <button
-                              onClick={() => {
-                                // Remove from collection
-                                setCollectionProducts(collectionProducts.filter(p => p.id !== product.id))
-                              }}
-                              className="text-red-600 text-sm hover:text-red-800"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium text-gray-700 mb-2">Add products:</h4>
-                    <div className="max-h-48 overflow-y-auto border rounded">
-                      {availableProducts
-                        .filter(p => !collectionProducts.find(cp => cp.id === p.id))
-                        .map((product) => (
-                          <div
-                            key={product.id}
-                            className="flex items-center justify-between p-2 hover:bg-gray-50 cursor-pointer"
-                            onClick={() => {
-                              setCollectionProducts([...collectionProducts, product])
-                            }}
-                          >
-                            <span className="text-sm">{product.name}</span>
-                            <span className="text-green-600 text-sm">+ Add</span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowProductModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      // Save collection products - need backend API
-                      showToast.info('Product management feature coming soon')
-                      setShowProductModal(false)
-                    } catch (error) {
-                      handleApiError(error, 'Failed to save collection products')
-                    }
-                  }}
-                  className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-                >
-                  {t('common.save')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
+            </DialogContent>
+          </Dialog>
+      </div>
+    )
+  }

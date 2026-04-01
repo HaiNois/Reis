@@ -15,6 +15,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Spinner } from "@/components/ui/spinner";
 
 // Helper to get main image URL from various formats
 function getProductImageUrl(images: HomepageProductImage[] | undefined): string {
@@ -392,7 +393,7 @@ export default function Homepage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-2 border-black border-t-transparent rounded-full" />
+        <Spinner size="lg" className="text-black" />
       </div>
     );
   }

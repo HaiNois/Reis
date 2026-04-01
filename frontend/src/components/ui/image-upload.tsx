@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { uploadApi } from '@/services/uploadApi'
+import { Spinner } from '@/components/ui/spinner'
 
 interface ImageUploadProps {
   value?: string
@@ -150,7 +151,7 @@ export function ImageUpload({
         >
           {uploading ? (
             <span className="flex items-center gap-2">
-              <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+              <Spinner size="sm" className="text-white" />
               Uploading {uploadProgress}%
             </span>
           ) : (

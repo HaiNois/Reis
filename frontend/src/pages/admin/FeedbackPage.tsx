@@ -2,9 +2,16 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { feedbackApi, Feedback } from '@/services/homepageApi'
 import { showToast, handleApiError } from '@/utils/toast'
+import { Spinner } from '@/components/ui/spinner'
+import { useConfirm } from '@/components/providers/confirm-provider'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 export default function FeedbackPage() {
   const { t } = useTranslation()
+  const { confirm } = useConfirm()
   const [feedbackList, setFeedbackList] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -52,7 +59,14 @@ export default function FeedbackPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('admin.confirmDelete'))) return
+    const confirmed = await confirm({
+      type: 'warning',
+      title: 'Delete Feedback',
+      description: 'Are you sure you want to delete this feedback?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    })
+    if (!confirmed) return
     try {
       await feedbackApi.deleteFeedback(id)
       fetchFeedback()
@@ -111,7 +125,7 @@ export default function FeedbackPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-2 border-black border-t-transparent rounded-full" />
+        <Spinner size="lg" className="text-black" />
       </div>
     )
   }
@@ -213,37 +227,38 @@ export default function FeedbackPage() {
               </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="space-y-2">
+                    <Label htmlFor="customerName">
                       {t('admin.customerName')} *
-                    </label>
-                    <input
+                    </Label>
+                    <Input
+                      id="customerName"
                       type="text"
                       value={formData.customerName}
                       onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                       required
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="space-y-2">
+                    <Label htmlFor="customerRole">
                       {t('admin.customerRole')}
-                    </label>
-                    <input
+                    </Label>
+                    <Input
+                      id="customerRole"
                       type="text"
                       value={formData.customerRole}
                       onChange={(e) => setFormData({ ...formData, customerRole: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                       placeholder="e.g. VIP Customer"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="space-y-2">
+                  <Label htmlFor="content">
                     {t('admin.content')} *
-                  </label>
+                  </Label>
                   <textarea
+                    id="content"
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                     rows={4}
@@ -252,25 +267,26 @@ export default function FeedbackPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="space-y-2">
+                  <Label htmlFor="avatarUrl">
                     {t('admin.avatarUrl')}
-                  </label>
-                  <input
+                  </Label>
+                  <Input
+                    id="avatarUrl"
                     type="url"
                     value={formData.avatarUrl}
                     onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     placeholder="https://..."
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="space-y-2">
+                    <Label htmlFor="rating">
                       {t('admin.rating')}
-                    </label>
+                    </Label>
                     <select
+                      id="rating"
                       value={formData.rating}
                       onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -280,15 +296,15 @@ export default function FeedbackPage() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="space-y-2">
+                    <Label htmlFor="sortOrder">
                       {t('admin.sortOrder')}
-                    </label>
-                    <input
+                    </Label>
+                    <Input
+                      id="sortOrder"
                       type="number"
                       value={formData.sortOrder}
                       onChange={(e) => setFormData({ ...formData, sortOrder: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
                 </div>
@@ -302,9 +318,9 @@ export default function FeedbackPage() {
                       onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
                       className="w-4 h-4"
                     />
-                    <label htmlFor="isFeatured" className="text-sm text-gray-700">
+                    <Label htmlFor="isFeatured" className="text-sm text-gray-700">
                       {t('admin.featured')}
-                    </label>
+                    </Label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -314,29 +330,19 @@ export default function FeedbackPage() {
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                       className="w-4 h-4"
                     />
-                    <label htmlFor="isActive" className="text-sm text-gray-700">
+                    <Label htmlFor="isActive" className="text-sm text-gray-700">
                       {t('common.active')}
-                    </label>
+                    </Label>
                   </div>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowModal(false)
-                      resetForm()
-                    }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
+                  <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                     {t('common.cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-                  >
+                  </Button>
+                  <Button type="submit">
                     {t('common.save')}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>
