@@ -17,6 +17,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   pageSize?: number
   onRowClick?: (row: TData) => void
+  onRowDoubleClick?: (row: TData) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -24,6 +25,7 @@ export function DataTable<TData, TValue>({
   data,
   pageSize = 10,
   onRowClick,
+  onRowDoubleClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -75,7 +77,8 @@ export function DataTable<TData, TValue>({
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                   onClick={() => onRowClick?.(row.original)}
-                  className={onRowClick ? "cursor-pointer" : ""}
+                  onDoubleClick={() => onRowDoubleClick?.(row.original)}
+                  className={onRowClick || onRowDoubleClick ? "cursor-pointer" : ""}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

@@ -34,10 +34,10 @@ const categoryColumns = (t: Function, openProductModal: (category: Category) => 
     cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.slug}</span>,
   },
   {
-    accessorKey: 'products',
+    accessorKey: 'productCount',
     header: t('admin.products'),
     cell: ({ row }) => (
-      <span className="text-sm">{row.original.products?.length || 0}</span>
+      <span className="text-sm">{row.original.productCount ?? 0}</span>
     ),
   },
   {
@@ -252,6 +252,7 @@ export default function CategoriesPage() {
             columns={categoryColumns(t, openProductModal, openEdit, handleDelete)}
             data={categories}
             pageSize={10}
+            onRowDoubleClick={(category) => openEdit(category as Category)}
           />
         </CardContent>
       </Card>

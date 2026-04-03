@@ -3,19 +3,13 @@ import { z } from 'zod'
 // ==================== HOMEPAGE SECTION ====================
 
 export const createHomepageSectionSchema = z.object({
-  sectionType: z.enum(['HERO_BANNER', 'SEASON', 'TOP_SALE', 'FEATURED_COLLECTION', 'EDITORIAL']),
+  sectionType: z.enum(['ANNOUNCEMENT_BAR', 'HERO', 'PRODUCT_RAIL', 'MEDIA_TILES', 'NEW_SEASON_ARRIVALS']),
   title: z.string().min(1, 'Title is required'),
-  titleEn: z.string().optional(),
   subtitle: z.string().optional(),
-  subtitleEn: z.string().optional(),
   slug: z.string().min(1, 'Slug is required'),
   description: z.string().optional(),
-  descriptionEn: z.string().optional(),
-  imageUrl: z.string().url().optional().or(z.literal('')),
-  mobileImageUrl: z.string().url().optional().or(z.literal('')),
-  ctaLabel: z.string().optional(),
-  ctaLabelEn: z.string().optional(),
-  ctaUrl: z.string().url().optional().or(z.literal('')),
+  layout: z.string().optional(),
+  configJson: z.record(z.unknown()).optional(),
   isActive: z.boolean().optional(),
   sortOrder: z.number().optional(),
   startsAt: z.string().datetime().optional(),
@@ -23,19 +17,13 @@ export const createHomepageSectionSchema = z.object({
 })
 
 export const updateHomepageSectionSchema = z.object({
-  sectionType: z.enum(['HERO_BANNER', 'SEASON', 'TOP_SALE', 'FEATURED_COLLECTION', 'EDITORIAL']).optional(),
+  sectionType: z.enum(['ANNOUNCEMENT_BAR', 'HERO', 'PRODUCT_RAIL', 'MEDIA_TILES', 'NEW_SEASON_ARRIVALS']).optional(),
   title: z.string().min(1).optional(),
-  titleEn: z.string().optional(),
   subtitle: z.string().optional(),
-  subtitleEn: z.string().optional(),
   slug: z.string().min(1).optional(),
   description: z.string().optional(),
-  descriptionEn: z.string().optional(),
-  imageUrl: z.string().url().optional().or(z.literal('')),
-  mobileImageUrl: z.string().url().optional().or(z.literal('')),
-  ctaLabel: z.string().optional(),
-  ctaLabelEn: z.string().optional(),
-  ctaUrl: z.string().url().optional().or(z.literal('')),
+  layout: z.string().optional(),
+  configJson: z.record(z.unknown()).optional(),
   isActive: z.boolean().optional(),
   sortOrder: z.number().optional(),
   startsAt: z.string().datetime().optional(),
@@ -56,7 +44,53 @@ export const reorderProductsSchema = z.object({
   ),
 })
 
+// ==================== SECTION ITEMS ====================
+
+export const createHomepageSectionItemSchema = z.object({
+  itemType: z.enum(['ANNOUNCEMENT', 'MEDIA_TILE', 'PRODUCT', 'COLLECTION', 'BANNER']),
+  title: z.string().optional(),
+  subtitle: z.string().optional(),
+  description: z.string().optional(),
+  mediaUrl: z.string().optional().or(z.literal('')),
+  mobileMediaUrl: z.string().optional().or(z.literal('')),
+  mediaType: z.enum(['IMAGE', 'VIDEO']).default('IMAGE'),
+  ctaLabel: z.string().optional(),
+  ctaUrl: z.string().optional().or(z.literal('')),
+  linkTarget: z.enum(['SELF', 'BLANK']).default('SELF'),
+  metaJson: z.record(z.unknown()).optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().optional(),
+})
+
+export const updateHomepageSectionItemSchema = z.object({
+  itemType: z.enum(['ANNOUNCEMENT', 'MEDIA_TILE', 'PRODUCT', 'COLLECTION', 'BANNER']).optional(),
+  title: z.string().optional(),
+  subtitle: z.string().optional(),
+  description: z.string().optional(),
+  mediaUrl: z.string().optional().or(z.literal('')),
+  mobileMediaUrl: z.string().optional().or(z.literal('')),
+  mediaType: z.enum(['IMAGE', 'VIDEO']).optional(),
+  ctaLabel: z.string().optional(),
+  ctaUrl: z.string().optional().or(z.literal('')),
+  linkTarget: z.enum(['SELF', 'BLANK']).optional(),
+  metaJson: z.record(z.unknown()).optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().optional(),
+})
+
+export const reorderItemsSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string().uuid('Invalid item ID'),
+      sortOrder: z.number(),
+    })
+  ),
+})
+
 export type CreateHomepageSectionInput = z.infer<typeof createHomepageSectionSchema>
 export type UpdateHomepageSectionInput = z.infer<typeof updateHomepageSectionSchema>
 export type AddProductToSectionInput = z.infer<typeof addProductToSectionSchema>
 export type ReorderProductsInput = z.infer<typeof reorderProductsSchema>
+export type CreateHomepageSectionItemInput = z.infer<typeof createHomepageSectionItemSchema>
+export type UpdateHomepageSectionItemInput = z.infer<typeof updateHomepageSectionItemSchema>
+export type ReorderItemsInput = z.infer<typeof reorderItemsSchema>

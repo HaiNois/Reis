@@ -7,7 +7,7 @@ import {
   HomepageSection,
   ProductImage as HomepageProductImage,
 } from "@/services/homepageApi";
-import { productApi } from "@/services/productApi";
+import { collectionApi } from "@/services/productApi";
 import { FALLBACK_IMAGE } from "@/services/productApi";
 import {
   Carousel,
@@ -69,7 +69,7 @@ function HeroSection({ section }: { section: HomepageSection }) {
 
   // Find hero item if exists
   const heroItem = section.items?.[0];
-  const imageUrl = "/images/banners/banner.jpg";
+  const imageUrl = heroItem?.mediaUrl || "/images/banners/banner.jpg";
   const mobileImageUrl = heroItem?.mobileMediaUrl || imageUrl;
   const ctaLabel =
     heroItem?.ctaLabel || (lang === "en" ? "Shop Now" : "Mua ngay");
@@ -215,7 +215,7 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
 
   useEffect(() => {
     if (collectionId) {
-      productApi.getCollectionProducts(collectionId).then((res) => {
+      collectionApi.getCollectionProducts(collectionId).then((res: any) => {
         setCollectionProducts(res.data || []);
       }).catch(() => setCollectionProducts([]));
     }

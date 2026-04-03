@@ -4,6 +4,9 @@ import {
   updateHomepageSectionSchema,
   addProductToSectionSchema,
   reorderProductsSchema,
+  createHomepageSectionItemSchema,
+  updateHomepageSectionItemSchema,
+  reorderItemsSchema,
 } from './homepage-section.dto.js'
 import { asyncHandler } from '../../shared/utils/error-handler.js'
 
@@ -102,6 +105,64 @@ export class HomepageSectionController {
     res.json({
       success: true,
       data: { message: 'Product removed from section' },
+    })
+  })
+
+  // Admin - Get items for section
+  getItems = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const items = await homepageSectionService.getItems(id)
+
+    res.json({
+      success: true,
+      data: items,
+    })
+  })
+
+  // Admin - Create item
+  createItem = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const input = createHomepageSectionItemSchema.parse(req.body)
+    const item = await homepageSectionService.createItem(id, input)
+
+    res.status(201).json({
+      success: true,
+      data: item,
+    })
+  })
+
+  // Admin - Update item
+  updateItem = asyncHandler(async (req, res) => {
+    const { id, itemId } = req.params
+    const input = updateHomepageSectionItemSchema.parse(req.body)
+    const item = await homepageSectionService.updateItem(itemId, input)
+
+    res.json({
+      success: true,
+      data: item,
+    })
+  })
+
+  // Admin - Delete item
+  deleteItem = asyncHandler(async (req, res) => {
+    const { id, itemId } = req.params
+    await homepageSectionService.deleteItem(itemId)
+
+    res.json({
+      success: true,
+      data: { message: 'Item deleted successfully' },
+    })
+  })
+
+  // Admin - Reorder items
+  reorderItems = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const input = reorderItemsSchema.parse(req.body)
+    const items = await homepageSectionService.reorderItems(id, input.items)
+
+    res.json({
+      success: true,
+      data: items,
     })
   })
 

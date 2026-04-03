@@ -11,7 +11,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
 import { AlertTriangle, CheckCircle, XCircle, Info } from 'lucide-react'
 
 type DialogType = 'confirm' | 'warning' | 'error' | 'info'
@@ -88,7 +87,7 @@ export function ConfirmDialog({
 }
 
 // Standalone confirm function for easy use
-interface ConfirmOptions {
+export interface ConfirmOptions {
   type?: DialogType
   title: string
   description: string
@@ -96,13 +95,10 @@ interface ConfirmOptions {
   cancelText?: string
 }
 
-let resolvePromise: ((value: boolean) => void) | null = null
-
 export function confirm(options: ConfirmOptions): Promise<boolean> {
   // This will be handled by a context provider
   // For now, return a placeholder that needs to be implemented with a context
-  return new Promise((resolve) => {
-    resolvePromise = resolve
+  return new Promise(() => {
     // Dispatch custom event that can be caught by a global handler
     window.dispatchEvent(
       new CustomEvent('show-confirm-dialog', { detail: options })

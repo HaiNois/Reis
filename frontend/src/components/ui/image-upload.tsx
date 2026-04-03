@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { uploadApi } from '@/services/uploadApi'
 import { Spinner } from '@/components/ui/spinner'
 
@@ -45,6 +45,14 @@ export function ImageUpload({
   const createPreview = (file: File): string => {
     return URL.createObjectURL(file)
   }
+
+  // Sync previews when value changes (e.g., when editing an existing image)
+  useEffect(() => {
+    const images = getImages()
+    if (images.length > 0 && previews.length === 0) {
+      setPreviews(images.map(url => ({ url })))
+    }
+  }, [value])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files

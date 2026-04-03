@@ -7,7 +7,6 @@ import { Spinner } from '@/components/ui/spinner'
 import { DataTable } from '@/components/ui/data-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Eye } from 'lucide-react'
 
 const statusColors: Record<string, string> = {
@@ -21,7 +20,7 @@ const statusColors: Record<string, string> = {
 }
 
 // Define columns for orders table
-const orderColumns = (t: Function, handleStatusChange: (orderId: string, status: string) => void): ColumnDef<Order>[] => [
+const orderColumns = (handleStatusChange: (orderId: string, status: string) => void): ColumnDef<Order>[] => [
   {
     accessorKey: 'orderNumber',
     header: 'Order #',
@@ -68,7 +67,7 @@ const orderColumns = (t: Function, handleStatusChange: (orderId: string, status:
   {
     id: 'actions',
     header: () => <div className="text-right">Actions</div>,
-    cell: ({ row }) => (
+    cell: () => (
       <div className="text-right">
         <Button variant="ghost" size="sm">
           <Eye className="h-4 w-4 mr-1" />
@@ -141,7 +140,7 @@ export default function OrdersPage() {
         </CardHeader>
         <CardContent>
           <DataTable
-            columns={orderColumns(t, handleStatusChange)}
+            columns={orderColumns(handleStatusChange)}
             data={orders}
             pageSize={10}
           />

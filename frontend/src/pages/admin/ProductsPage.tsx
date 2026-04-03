@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ColumnDef } from '@tanstack/react-table'
-import { productApi, Product, ProductVariant } from '@/services/productApi'
+import { productApi, categoryApi, Product, ProductVariant, Category } from '@/services/productApi'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { showToast, handleApiError } from '@/utils/toast'
 import { Spinner } from '@/components/ui/spinner'
@@ -98,6 +98,7 @@ export default function ProductsPage() {
   const { confirm } = useConfirm()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [categories, setCategories] = useState<Category[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [showVariantModal, setShowVariantModal] = useState(false)
@@ -112,6 +113,7 @@ export default function ProductsPage() {
     compareAtPrice: 0,
     status: 'ACTIVE' as 'ACTIVE' | 'DRAFT' | 'ARCHIVED',
     image: '',
+    categoryId: '',
   })
 
   // Variant form
@@ -131,7 +133,17 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts()
+    fetchCategories()
   }, [])
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoryApi.getCategories()
+      setCategories(response.data || [])
+    } catch (error) {
+      console.error('Failed to fetch categories', error)
+    }
+  }
 
   const fetchProducts = async () => {
     try {
@@ -147,11 +159,15 @@ export default function ProductsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      const payload = {
+        ...formData,
+        categoryId: formData.categoryId || undefined,
+      }
       if (editingProduct) {
-        await productApi.updateProduct(editingProduct.id, formData)
+        await productApi.updateProduct(editingProduct.id, payload)
         showToast.success('Product updated successfully')
       } else {
-        await productApi.createProduct(formData)
+        await productApi.createProduct(payload)
         showToast.success('Product created successfully')
       }
       setShowModal(false)
@@ -166,6 +182,7 @@ export default function ProductsPage() {
         compareAtPrice: 0,
         status: 'ACTIVE',
         image: '',
+        categoryId: '',
       })
       fetchProducts()
     } catch (error) {
@@ -203,6 +220,7 @@ export default function ProductsPage() {
       compareAtPrice: product.compareAtPrice || 0,
       status: product.status,
       image: product.image || '',
+      categoryId: product.categoryId || '',
     })
     setShowModal(true)
   }
@@ -224,6 +242,7 @@ export default function ProductsPage() {
       compareAtPrice: 0,
       status: 'ACTIVE',
       image: '',
+      categoryId: '',
     })
   }
 
@@ -250,6 +269,7 @@ export default function ProductsPage() {
             columns={productColumns(t, openEdit, handleDelete, openVariantModal)}
             data={products}
             pageSize={10}
+            onRowDoubleClick={(product) => openEdit(product as Product)}
           />
         </CardContent>
       </Card>
@@ -350,6 +370,20 @@ export default function ProductsPage() {
                   <option value="ACTIVE">Active</option>
                   <option value="DRAFT">Draft</option>
                   <option value="ARCHIVED">Archived</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <select
+                  id="category"
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="">No Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
             </div>

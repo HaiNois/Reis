@@ -334,11 +334,15 @@ enum HomepageSectionType {
   HERO
   PRODUCT_RAIL
   MEDIA_TILES
+  NEW_SEASON_ARRIVALS
 }
 
 enum HomepageItemType {
   ANNOUNCEMENT
   MEDIA_TILE
+  PRODUCT
+  COLLECTION
+  BANNER
 }
 
 enum MediaType {

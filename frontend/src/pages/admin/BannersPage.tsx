@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { bannerApi, Banner } from '@/services/productApi'
-import { showToast, handleApiError } from '@/utils/toast'
+import { handleApiError } from '@/utils/toast'
 import { Spinner } from '@/components/ui/spinner'
 import { useConfirm } from '@/components/providers/confirm-provider'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 export default function BannersPage() {
   const { t } = useTranslation()

@@ -327,7 +327,12 @@ export class ProductService {
       return await prisma.category.findMany({
         where: { parentId: null },
         include: {
-          children: true,
+          children: {
+            include: {
+              _count: { select: { products: true } },
+            },
+          },
+          _count: { select: { products: true } },
         },
       })
     } catch (error) {

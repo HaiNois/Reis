@@ -52,9 +52,19 @@ export class ProductController {
   getCategories = asyncHandler(async (req, res) => {
     const categories = await productService.getCategories()
 
+    // Transform _count to productCount for frontend compatibility
+    const transformed = categories.map((cat: any) => ({
+      ...cat,
+      productCount: cat._count?.products ?? 0,
+      children: cat.children?.map((child: any) => ({
+        ...child,
+        productCount: child._count?.products ?? 0,
+      })),
+    }))
+
     res.json({
       success: true,
-      data: categories,
+      data: transformed,
     })
   })
 

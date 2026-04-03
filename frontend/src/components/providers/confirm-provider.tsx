@@ -10,7 +10,7 @@ const ConfirmContext = createContext<ConfirmContextType | null>(null)
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [dialogState, setDialogState] = useState<{
     open: boolean
-    options: ConfirmOptions & { onResolve?: (value: boolean) => void }
+    options: (ConfirmOptions & { onResolve?: (value: boolean) => void }) | null
   }>({
     open: false,
     options: null,

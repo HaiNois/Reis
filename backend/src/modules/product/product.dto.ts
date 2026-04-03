@@ -17,7 +17,7 @@ export const createProductSchema = z.object({
   price: z.coerce.number().positive('Price must be positive'),
   compareAtPrice: z.coerce.number().positive().optional(),
   image: z.string().optional(), // Main product image URL
-  categoryId: z.string().uuid().optional(),
+  categoryId: z.string().uuid().nullable().optional(),
   status: z.enum(['ACTIVE', 'DRAFT', 'ARCHIVED']).optional(),
   isFeatured: z.boolean().optional(),
   isNewArrival: z.boolean().optional(),
