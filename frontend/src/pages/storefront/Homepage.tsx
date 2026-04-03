@@ -7,6 +7,7 @@ import {
   HomepageSection,
   ProductImage as HomepageProductImage,
 } from "@/services/homepageApi";
+import { productApi } from "@/services/productApi";
 import { FALLBACK_IMAGE } from "@/services/productApi";
 import {
   Carousel,
@@ -204,84 +205,164 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
   const { i18n } = useTranslation();
   const lang = i18n.language || "vi";
   const title = section.title;
+  const config = section.configJson as { collectionId?: string } | undefined;
+  const collectionId = config?.collectionId;
 
   const items = section.items?.filter((i) => i.itemType === "MEDIA_TILE") || [];
+
+  // If collectionId is set, show products from that collection instead of items
+  const [collectionProducts, setCollectionProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (collectionId) {
+      productApi.getCollectionProducts(collectionId).then((res) => {
+        setCollectionProducts(res.data || []);
+      }).catch(() => setCollectionProducts([]));
+    }
+  }, [collectionId]);
+
+  const displayProducts = collectionProducts.length > 0 ? collectionProducts : [];
 
   return (
     <section className="py-8 md:py-12">
       <div className="container-custom">
-        <Carousel
-          opts={{
-            align: "start",
-            loop: true,
-          }}
-          className="w-full"
-        >
-          {title && (
-            <div className="flex items-center justify-between mb-12">
-              <h2 className="text-2xl md:text-3xl font-display font-bold tracking-wide">
-                {title}
-              </h2>
-              <div className="flex items-center gap-4">
-                <Link
-                  to="/products"
-                  className="text-sm font-medium tracking-wide hover:text-gray-600 transition-colors"
-                >
-                  {lang === "en" ? "View all" : "Xem tất cả"}
-                </Link>
-                <div className="flex gap-2">
-                  <CarouselPrevious className="static translate-y-0 left-0" />
-                  <CarouselNext className="static translate-y-0 right-0" />
+        {displayProducts.length > 0 ? (
+          // Show products from collection
+          <Carousel
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+            className="w-full"
+          >
+            {title && (
+              <div className="flex items-center justify-between mb-12">
+                <h2 className="text-2xl md:text-3xl font-display font-bold tracking-wide">
+                  {title}
+                </h2>
+                <div className="flex items-center gap-4">
+                  <Link
+                    to="/collections"
+                    className="text-sm font-medium tracking-wide hover:text-gray-600 transition-colors"
+                  >
+                    {lang === "en" ? "View all" : "Xem tất cả"}
+                  </Link>
+                  <div className="flex gap-2">
+                    <CarouselPrevious className="static translate-y-0 left-0" />
+                    <CarouselNext className="static translate-y-0 right-0" />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          <CarouselContent className="-ml-4">
-            {items.map((item) => {
-              const config = item.metaJson as
-                | { overlayStyle?: string }
-                | undefined;
-              return (
+            )}
+            <CarouselContent className="-ml-4">
+              {displayProducts.map((product: any) => (
                 <CarouselItem
-                  key={item.id}
-                  className="pl-4 basis-full md:basis-1/2 lg:basis-1/3"
+                  key={product.id}
+                  className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4"
                 >
                   <Link
-                    to={item.ctaUrl || "#"}
-                    target={item.linkTarget === "BLANK" ? "_blank" : "_self"}
-                    className="block group relative overflow-hidden aspect-[4/5]"
+                    to={`/products/${product.slug}`}
+                    className="product-card group block"
                   >
-                    <img
-                      src={item.mediaUrl || "/images/products/placeholder.jpg"}
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div
-                      className={`absolute inset-0 ${config?.overlayStyle === "light" ? "bg-white/20" : "bg-black/30"} flex flex-col justify-end p-6`}
-                    >
-                      {item.title && (
-                        <h3 className="text-white text-xl font-bold">
-                          {item.title}
-                        </h3>
-                      )}
-                      {item.subtitle && (
-                        <p className="text-white/80 text-sm">{item.subtitle}</p>
-                      )}
-                      {item.ctaLabel && (
-                        <span className="text-white text-sm mt-2 underline">
-                          {item.ctaLabel}
-                        </span>
-                      )}
+                    <div className="product-card__image aspect-[3/4] overflow-hidden">
+                      <img
+                        src={getProductImageUrl(product.images)}
+                        alt={lang === "en" && product.nameEn ? product.nameEn : product.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    </div>
+                    <div className="product-card__info">
+                      <h3 className="product-card__title group-hover:text-gray-600 transition-colors">
+                        {lang === "en" && product.nameEn ? product.nameEn : product.name}
+                      </h3>
+                      <p className="product-card__price">
+                        {Number(product.price).toLocaleString("vi-VN")} ₫
+                      </p>
                     </div>
                   </Link>
                 </CarouselItem>
-              );
-            })}
-          </CarouselContent>
-          <CarouselPrevious className="absolute -left-12 top-1/2 -translate-y-1/2" />
-          <CarouselNext className="absolute -right-12 top-1/2 -translate-y-1/2" />
-        </Carousel>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="static translate-y-0 left-0" />
+            <CarouselNext className="static translate-y-0 right-0" />
+          </Carousel>
+        ) : (
+          // Fallback to items (original behavior)
+          items.length > 0 && (
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              className="w-full"
+            >
+              {title && (
+                <div className="flex items-center justify-between mb-12">
+                  <h2 className="text-2xl md:text-3xl font-display font-bold tracking-wide">
+                    {title}
+                  </h2>
+                  <div className="flex items-center gap-4">
+                    <Link
+                      to="/products"
+                      className="text-sm font-medium tracking-wide hover:text-gray-600 transition-colors"
+                    >
+                      {lang === "en" ? "View all" : "Xem tất cả"}
+                    </Link>
+                    <div className="flex gap-2">
+                      <CarouselPrevious className="static translate-y-0 left-0" />
+                      <CarouselNext className="static translate-y-0 right-0" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <CarouselContent className="-ml-4">
+                {items.map((item) => {
+                  const itemConfig = item.metaJson as
+                    | { overlayStyle?: string }
+                    | undefined;
+                  return (
+                    <CarouselItem
+                      key={item.id}
+                      className="pl-4 basis-full md:basis-1/2 lg:basis-1/3"
+                    >
+                      <Link
+                        to={item.ctaUrl || "#"}
+                        target={item.linkTarget === "BLANK" ? "_blank" : "_self"}
+                        className="block group relative overflow-hidden aspect-[4/5]"
+                      >
+                        <img
+                          src={item.mediaUrl || "/images/products/placeholder.jpg"}
+                          alt={item.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                        <div
+                          className={`absolute inset-0 ${itemConfig?.overlayStyle === "light" ? "bg-white/20" : "bg-black/30"} flex flex-col justify-end p-6`}
+                        >
+                          {item.title && (
+                            <h3 className="text-white text-xl font-bold">
+                              {item.title}
+                            </h3>
+                          )}
+                          {item.subtitle && (
+                            <p className="text-white/80 text-sm">{item.subtitle}</p>
+                          )}
+                          {item.ctaLabel && (
+                            <span className="text-white text-sm mt-2 underline">
+                              {item.ctaLabel}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    </CarouselItem>
+                  );
+                })}
+              </CarouselContent>
+              <CarouselPrevious className="absolute -left-12 top-1/2 -translate-y-1/2" />
+              <CarouselNext className="absolute -right-12 top-1/2 -translate-y-1/2" />
+            </Carousel>
+          )
+        )}
       </div>
     </section>
   );

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { homepageSectionApi, HomepageSection, HomepageSectionType } from '@/services/homepageApi'
-import { productApi, Product, Collection } from '@/services/productApi'
+import { productApi, Product, Collection, collectionApi } from '@/services/productApi'
 import { showToast, handleApiError } from '@/utils/toast'
 import { Spinner } from '@/components/ui/spinner'
 import { useConfirm } from '@/components/providers/confirm-provider'
@@ -38,7 +38,7 @@ export default function HomepageSectionsPage() {
   useEffect(() => {
     const fetchCollections = async () => {
       try {
-        const response = await productApi.getCollections()
+        const response = await collectionApi.getAllCollections()
         setAvailableCollections(response.data || [])
       } catch (error) {
         handleApiError(error, 'Failed to fetch collections')
@@ -87,11 +87,28 @@ export default function HomepageSectionsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate MEDIA_TILES requires collectionId
+    if (formData.sectionType === 'MEDIA_TILES') {
+      const config = formData.configJson as any
+      if (!config?.collectionId) {
+        showToast.error(t('admin.mediaTilesCollectionRequired') || 'Please select a collection for MEDIA_TILES section')
+        return
+      }
+    }
+
     try {
+      // Convert datetime-local format to ISO 8601 with timezone
+      const formatDatetime = (value: string) => {
+        if (!value) return undefined
+        // datetime-local gives "2024-01-15T10:30", convert to ISO with UTC
+        return new Date(value).toISOString()
+      }
+
       const data = {
         ...formData,
-        startsAt: formData.startsAt || undefined,
-        endsAt: formData.endsAt || undefined,
+        startsAt: formatDatetime(formData.startsAt),
+        endsAt: formatDatetime(formData.endsAt),
       }
 
       if (editingSection) {
@@ -153,6 +170,21 @@ export default function HomepageSectionsPage() {
 
   const openEdit = (section: HomepageSection) => {
     setEditingSection(section)
+
+    // Parse configJson if it's a string (from JSON column)
+    let parsedConfig: Record<string, unknown> = {}
+    if (section.configJson) {
+      if (typeof section.configJson === 'string') {
+        try {
+          parsedConfig = JSON.parse(section.configJson)
+        } catch {
+          parsedConfig = {}
+        }
+      } else {
+        parsedConfig = section.configJson as Record<string, unknown>
+      }
+    }
+
     setFormData({
       sectionType: section.sectionType,
       slug: section.slug || '',
@@ -160,7 +192,7 @@ export default function HomepageSectionsPage() {
       subtitle: section.subtitle || '',
       description: section.description || '',
       layout: section.layout || 'grid',
-      configJson: (section.configJson as Record<string, unknown>) || {},
+      configJson: parsedConfig,
       isActive: section.isActive,
       sortOrder: section.sortOrder,
       startsAt: section.startsAt ? section.startsAt.slice(0, 16) : '',
@@ -438,6 +470,31 @@ export default function HomepageSectionsPage() {
                       <option value="grid">Grid</option>
                       <option value="carousel">Carousel</option>
                     </select>
+                  </div>
+                )}
+
+                {formData.sectionType === 'MEDIA_TILES' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="collectionId">{t('admin.selectCollection')}</Label>
+                    <select
+                      id="collectionId"
+                      value={(formData.configJson as any)?.collectionId || ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        configJson: { ...formData.configJson, collectionId: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">-- {t('admin.none')} --</option>
+                      {availableCollections.map((collection) => (
+                        <option key={collection.id} value={collection.id}>
+                          {collection.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500">
+                      {t('admin.mediaTilesCollectionHint')}
+                    </p>
                   </div>
                 )}
 

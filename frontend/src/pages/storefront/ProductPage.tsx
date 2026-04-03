@@ -1,10 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/stores/cartStore'
 import { productApi, getMainImageUrl, getThumbnailImages, getImageUrl, FALLBACK_IMAGE, ProductImage } from '@/services/productApi'
 import { showToast } from '@/utils/toast'
 import { Spinner } from '@/components/ui/spinner'
+import { ProductVariant } from '@/services/productApi'
+
+interface ColorOption {
+  name: string
+  hex: string
+}
 
 export default function ProductPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -39,51 +45,112 @@ export default function ProductPage() {
     fetchProduct()
   }, [slug])
 
-  // Fallback demo product if no real product
-  const demoProduct = {
-    id: '1',
-    name: 'Áo sơ mi linen',
-    description: 'Áo sơ mi được làm từ chất liệu linen 100% cao cấp, mềm mại và thoáng khí. Thiết kế oversize hiện đại, phù hợp cho nhiều phong cách.',
-    material: '100% Linen',
-    careGuide: 'Giặt máy nước ấm (30°C), không tẩy trắng, ủi ở nhiệt độ trung bình. Phơi trong bóng râm.',
-    price: 1250000,
-    compareAtPrice: 1500000,
-    images: [],
-    variants: [
-      { id: '1', size: 'S', color: 'Trắng', price: 1250000 },
-      { id: '2', size: 'M', color: 'Trắng', price: 1250000 },
-      { id: '3', size: 'L', color: 'Trắng', price: 1250000 },
-      { id: '4', size: 'XL', color: 'Trắng', price: 1250000 },
-    ],
-  }
+  // Reset selection when product changes
+  useEffect(() => {
+    setSelectedSize('')
+    setSelectedColor('')
+    setQuantity(1)
+  }, [product?.id])
 
-  const currentProduct = product || demoProduct
-  const productImages = currentProduct.images || []
+  const currentProduct = product
+  const productImages = currentProduct?.images || []
   const thumbnails = getThumbnailImages(productImages)
-  const sizes = ['S', 'M', 'L', 'XL']
-  const colors = [
-    { name: 'Trắng', hex: '#ffffff', border: 'border-gray-300' },
-    { name: 'Đen', hex: '#000000', border: 'border-gray-900' },
-    { name: 'Be', hex: '#d4c4a8', border: 'border-gray-400' },
-  ]
+  const variants: ProductVariant[] = currentProduct?.variants || []
+
+  // Extract unique colors and sizes from variants
+  const { colors, sizes } = useMemo(() => {
+    const colorMap = new Map<string, ColorOption>()
+    const sizeSet = new Set<string>()
+    const colorDefaults: Record<string, string> = {
+      'trắng': '#ffffff', 'white': '#ffffff',
+      'đen': '#000000', 'black': '#000000',
+      'be': '#d4c4a8', 'beige': '#d4c4a8',
+      'xanh navy': '#000080', 'navy': '#000080', 'navy blue': '#000080',
+      'xám': '#808080', 'gray': '#808080', 'grey': '#808080',
+      'đỏ': '#ff0000', 'red': '#ff0000',
+      'hồng': '#ffc0cb', 'pink': '#ffc0cb',
+      'xanh': '#008000', 'green': '#008000', 'forest': '#228b22',
+      'nâu': '#8b4513', 'brown': '#8b4513',
+      'cam': '#ffa500', 'orange': '#ffa500',
+      'tím': '#800080', 'purple': '#800080',
+      'vàng': '#ffff00', 'yellow': '#ffff00', 'gold': '#ffd700',
+    }
+
+    variants.forEach((v: ProductVariant) => {
+      if (v.color) {
+        sizeSet.add(v.size)
+        if (!colorMap.has(v.color)) {
+          colorMap.set(v.color, {
+            name: v.color,
+            hex: colorDefaults[v.color.toLowerCase()] || '#888888',
+          })
+        }
+      }
+    })
+
+    return {
+      colors: Array.from(colorMap.values()),
+      sizes: Array.from(sizeSet).sort((a, b) => {
+        const order = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
+        const indexA = order.indexOf(a.toUpperCase())
+        const indexB = order.indexOf(b.toUpperCase())
+        // If size not in order list, put it at the end
+        return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB)
+      }),
+    }
+  }, [variants])
+
+  // Find selected variant based on color + size
+  const selectedVariant = useMemo(() => {
+    if (!selectedColor || !selectedSize) return null
+    return variants.find((v: ProductVariant) =>
+      v.color === selectedColor && v.size === selectedSize
+    )
+  }, [variants, selectedColor, selectedSize])
+
+  // Available sizes for selected color
+  const availableSizes = useMemo(() => {
+    if (!selectedColor) return new Set<string>()
+    return new Set(
+      variants
+        .filter((v: ProductVariant) => v.color === selectedColor && v.quantity > 0)
+        .map((v: ProductVariant) => v.size)
+    )
+  }, [variants, selectedColor])
+
+  // Current price (from variant or product)
+  const currentPrice = selectedVariant?.salePrice || selectedVariant?.price || currentProduct?.price || 0
+  const currentCompareAtPrice =
+    selectedVariant?.price && selectedVariant?.salePrice && selectedVariant.price > selectedVariant.salePrice
+      ? selectedVariant.price
+      : currentProduct?.compareAtPrice
 
   const handleImageClick = (imageUrl: string) => {
     setMainImage(imageUrl)
   }
 
   const handleAddToCart = () => {
+    if (!selectedColor) {
+      showToast.warning(t('product.selectColor'))
+      return
+    }
     if (!selectedSize) {
       showToast.warning(t('product.selectSize'))
       return
     }
+    if (!selectedVariant) {
+      showToast.warning(t('product.variantNotAvailable'))
+      return
+    }
+
     addItem({
-      variantId: `${selectedSize}-${selectedColor}`,
+      variantId: selectedVariant.id,
       productId: currentProduct.id,
       productName: currentProduct.name,
-      variantName: `${selectedSize} - ${selectedColor || t('product.selectColorFirst')}`,
-      price: currentProduct.price,
+      variantName: `${selectedSize} - ${selectedColor}`,
+      price: currentPrice,
       image: mainImage,
-      maxQuantity: 10,
+      maxQuantity: selectedVariant.quantity,
     }, quantity)
     showToast.success(t('product.addToCart'))
   }
@@ -149,13 +216,13 @@ export default function ProductPage() {
 
           {/* Price */}
           <div className="flex items-center gap-3 mb-6">
-            <span className="text-xl md:text-2xl">{currentProduct.price?.toLocaleString('vi-VN')} ₫</span>
-            {currentProduct.compareAtPrice && (
+            <span className="text-xl md:text-2xl">{currentPrice.toLocaleString('vi-VN')} ₫</span>
+            {currentCompareAtPrice && (
               <span className="text-lg text-gray-400 line-through">
-                {currentProduct.compareAtPrice.toLocaleString('vi-VN')} ₫
+                {currentCompareAtPrice.toLocaleString('vi-VN')} ₫
               </span>
             )}
-            {currentProduct.compareAtPrice && (
+            {selectedVariant?.salePrice && selectedVariant.salePrice > 0 && (
               <span className="px-2 py-1 bg-red-sale text-white text-xs uppercase">
                 {t('product.sale')}
               </span>
@@ -168,17 +235,20 @@ export default function ProductPage() {
               {t('product.color')}: <span className="text-gray-500 font-normal">{selectedColor || t('product.selectColorFirst')}</span>
             </label>
             <div className="flex gap-3">
-              {colors.map((color) => (
-                <button
-                  key={color.name}
-                  onClick={() => setSelectedColor(color.name)}
-                  className={`w-8 h-8 rounded-full border-2 ${color.border} ${
-                    selectedColor === color.name ? 'ring-2 ring-offset-2 ring-black' : ''
-                  }`}
-                  style={{ backgroundColor: color.hex }}
-                  title={color.name}
-                />
-              ))}
+              {colors.map((color) => {
+                const isLight = ['#ffffff', '#ffc0cb', '#d4c4a8'].includes(color.hex.toLowerCase())
+                return (
+                  <button
+                    key={color.name}
+                    onClick={() => setSelectedColor(color.name)}
+                    className={`w-8 h-8 rounded-full border-2 ${
+                      isLight ? 'border-gray-300' : 'border-gray-900'
+                    } ${selectedColor === color.name ? 'ring-2 ring-offset-2 ring-black' : ''}`}
+                    style={{ backgroundColor: color.hex }}
+                    title={color.name}
+                  />
+                )
+              })}
             </div>
           </div>
 
@@ -188,19 +258,25 @@ export default function ProductPage() {
               {t('product.size')}: <span className="text-gray-500 font-normal">{selectedSize || t('product.selectSize')}</span>
             </label>
             <div className="flex gap-2">
-              {sizes.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`px-4 py-2 border rounded-lg transition-colors ${
-                    selectedSize === size
-                      ? 'bg-black text-white border-black'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
+              {sizes.map((size) => {
+                const isAvailable = availableSizes.has(size)
+                return (
+                  <button
+                    key={size}
+                    onClick={() => isAvailable && setSelectedSize(size)}
+                    disabled={!isAvailable}
+                    className={`px-4 py-2 border rounded-lg transition-colors ${
+                      selectedSize === size
+                        ? 'bg-black text-white border-black'
+                        : isAvailable
+                        ? 'border-gray-300 hover:border-gray-400'
+                        : 'border-gray-200 text-gray-300 cursor-not-allowed line-through'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                )
+              })}
             </div>
           </div>
 

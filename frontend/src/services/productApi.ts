@@ -59,7 +59,6 @@ export interface Category {
   slug: string
   description?: string
   descriptionEn?: string
-  image?: string
   parentId?: string
   children?: Category[]
   products?: Product[]
@@ -91,8 +90,6 @@ export interface Catalog {
 
 export interface Collection {
   id: string
-  catalogId: string
-  catalog?: Catalog
   name: string
   nameEn?: string
   slug: string
@@ -309,6 +306,22 @@ export const categoryApi = {
     const response = await api.delete(`/admin/categories/${id}`)
     return response.data
   },
+
+  // Category-Product Management
+  getCategoryProducts: async (categoryId: string) => {
+    const response = await api.get(`/admin/categories/${categoryId}/products`)
+    return response.data
+  },
+
+  addProductsToCategory: async (categoryId: string, productIds: string[]) => {
+    const response = await api.post(`/admin/categories/${categoryId}/products`, { productIds })
+    return response.data
+  },
+
+  removeProductsFromCategory: async (categoryId: string, productIds: string[]) => {
+    const response = await api.delete(`/admin/categories/${categoryId}/products`, { data: { productIds } })
+    return response.data
+  },
 }
 
 // ==================== BANNER API ====================
@@ -381,14 +394,14 @@ export const catalogApi = {
 
 export const collectionApi = {
   // Public
-  getCollections: async (catalogId?: string) => {
-    const response = await api.get('/collections', { params: { catalogId } })
+  getCollections: async () => {
+    const response = await api.get('/collections')
     return response.data
   },
 
   // Admin
-  getAllCollections: async (catalogId?: string) => {
-    const response = await api.get('/admin/collections', { params: { catalogId } })
+  getAllCollections: async () => {
+    const response = await api.get('/admin/collections')
     return response.data
   },
 
@@ -413,13 +426,18 @@ export const collectionApi = {
   },
 
   // Collection-Product management
-  addProductToCollection: async (collectionId: string, productId: string, sortOrder?: number) => {
-    const response = await api.post(`/admin/collections/${collectionId}/products`, { productId, sortOrder })
+  addProductToCollection: async (collectionId: string, productIds: string[], sortOrder?: number) => {
+    const response = await api.post(`/admin/collections/${collectionId}/products`, { productIds, sortOrder })
     return response.data
   },
 
   removeProductFromCollection: async (collectionId: string, productId: string) => {
     const response = await api.delete(`/admin/collections/${collectionId}/products/${productId}`)
+    return response.data
+  },
+
+  removeProductsFromCollection: async (collectionId: string, productIds: string[]) => {
+    const response = await api.delete(`/admin/collections/${collectionId}/products`, { data: { productIds } })
     return response.data
   },
 

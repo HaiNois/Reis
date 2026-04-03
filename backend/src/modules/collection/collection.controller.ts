@@ -18,12 +18,6 @@ export class CollectionController {
     res.json({ success: true, data: collection })
   }
 
-  async findByCatalog(req: Request, res: Response) {
-    const { catalogId } = req.params
-    const collections = await collectionService.findByCatalog(catalogId)
-    res.json({ success: true, data: collections })
-  }
-
   async create(req: Request, res: Response) {
     const data = CreateCollectionDto.parse(req.body)
     const collection = await collectionService.create(data)
@@ -50,17 +44,37 @@ export class CollectionController {
   }
 
   async addProducts(req: Request, res: Response) {
-    const { id } = req.params
-    const { productIds } = req.body
-    await collectionService.addProducts(id, productIds)
-    res.json({ success: true })
+    try {
+      const { id } = req.params
+      const { productIds } = req.body
+
+      if (!productIds || !Array.isArray(productIds)) {
+        throw new Error('productIds must be an array')
+      }
+
+      await collectionService.addProducts(id, productIds)
+      res.json({ success: true })
+    } catch (error) {
+      console.error('addProducts error:', error)
+      throw error
+    }
   }
 
   async removeProducts(req: Request, res: Response) {
-    const { id } = req.params
-    const { productIds } = req.body
-    await collectionService.removeProducts(id, productIds)
-    res.json({ success: true })
+    try {
+      const { id } = req.params
+      const { productIds } = req.body
+
+      if (!productIds || !Array.isArray(productIds)) {
+        throw new Error('productIds must be an array')
+      }
+
+      await collectionService.removeProducts(id, productIds)
+      res.json({ success: true })
+    } catch (error) {
+      console.error('removeProducts error:', error)
+      throw error
+    }
   }
 }
 

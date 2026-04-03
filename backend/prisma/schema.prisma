@@ -89,7 +89,6 @@ model Category {
   slug        String    @unique
   description String?
   descriptionEn String?
-  image       String?
   parentId    String?
   parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children    Category[] @relation("CategoryHierarchy")
@@ -100,33 +99,11 @@ model Category {
   @@index([slug])
 }
 
-// ==================== CATALOG & COLLECTION ====================
+// ==================== COLLECTION ====================
 
-// Catalog: top-level sales context (channel/market/storefront)
-model Catalog {
-  id          String   @id @default(uuid())
-  name        String
-  nameEn      String?
-  slug        String   @unique
-  description String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  collections Collection[]
-  catalogProducts CatalogProduct[]
-
-  @@index([slug])
-  @@index([isActive])
-}
-
-// Collection: curated grouping inside a Catalog
+// Collection: curated grouping of products (e.g., "Summer 2024", "New Arrivals")
 model Collection {
   id          String   @id @default(uuid())
-  catalogId   String
-  catalog     Catalog  @relation(fields: [catalogId], references: [id], onDelete: Cascade)
   name        String
   nameEn      String?
   slug        String   @unique
@@ -141,24 +118,7 @@ model Collection {
   collectionProducts CollectionProduct[]
 
   @@index([slug])
-  @@index([catalogId])
   @@index([isActive])
-}
-
-// Join table: Catalog M-N Product (product can exist in catalog without collection)
-model CatalogProduct {
-  id         String   @id @default(uuid())
-  catalogId  String
-  catalog    Catalog  @relation(fields: [catalogId], references: [id], onDelete: Cascade)
-  productId  String
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  sortOrder  Int      @default(0)
-  createdAt  DateTime @default(now())
-
-  // Unique: one product per catalog
-  @@unique([catalogId, productId])
-  @@index([catalogId])
-  @@index([productId])
 }
 
 // Join table: Collection M-N Product (product can belong to multiple collections)
@@ -208,7 +168,6 @@ model Product {
   images               ProductImage[]
   homepageSectionProducts HomepageSectionProduct[]
   orderItems           OrderItem[]
-  catalogProducts      CatalogProduct[]
   collectionProducts  CollectionProduct[]
 
   @@index([slug])

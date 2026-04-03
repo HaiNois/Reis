@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ColumnDef } from '@tanstack/react-table'
-import { productApi, Product } from '@/services/productApi'
+import { productApi, Product, ProductVariant } from '@/services/productApi'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { showToast, handleApiError } from '@/utils/toast'
 import { Spinner } from '@/components/ui/spinner'
@@ -16,7 +16,12 @@ import { Label } from '@/components/ui/label'
 import { Pencil, Trash2, Plus } from 'lucide-react'
 
 // Define columns for products table
-const productColumns = (t: Function, openEdit: (product: Product) => void, handleDelete: (id: string) => void): ColumnDef<Product>[] => [
+const productColumns = (
+  t: Function,
+  openEdit: (product: Product) => void,
+  handleDelete: (id: string) => void,
+  openVariantModal: (product: Product) => void
+): ColumnDef<Product>[] => [
   {
     accessorKey: 'name',
     header: 'Name',
@@ -57,7 +62,18 @@ const productColumns = (t: Function, openEdit: (product: Product) => void, handl
   {
     accessorKey: 'variants',
     header: 'Variants',
-    cell: ({ row }) => <span>{row.original.variants?.length || 0} variants</span>,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <span>{row.original.variants?.length || 0}</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => openVariantModal(row.original)}
+        >
+          <Pencil className="h-3 w-3" />
+        </Button>
+      </div>
+    ),
   },
   {
     id: 'actions',
@@ -84,6 +100,8 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [showVariantModal, setShowVariantModal] = useState(false)
+  const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -94,6 +112,16 @@ export default function ProductsPage() {
     compareAtPrice: 0,
     status: 'ACTIVE' as 'ACTIVE' | 'DRAFT' | 'ARCHIVED',
     image: '',
+  })
+
+  // Variant form
+  const [variantForm, setVariantForm] = useState({
+    sku: '',
+    size: '',
+    color: '',
+    price: 0,
+    salePrice: 0,
+    quantity: 0,
   })
 
   // Form validation
@@ -179,6 +207,11 @@ export default function ProductsPage() {
     setShowModal(true)
   }
 
+  const openVariantModal = (product: Product) => {
+    setEditingProduct(product)
+    setShowVariantModal(true)
+  }
+
   const resetForm = () => {
     setEditingProduct(null)
     setFormData({
@@ -214,7 +247,7 @@ export default function ProductsPage() {
         </CardHeader>
         <CardContent>
           <DataTable
-            columns={productColumns(t, openEdit, handleDelete)}
+            columns={productColumns(t, openEdit, handleDelete, openVariantModal)}
             data={products}
             pageSize={10}
           />
@@ -341,6 +374,199 @@ export default function ProductsPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Variant Modal */}
+      <Dialog open={showVariantModal} onOpenChange={setShowVariantModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Manage Variants - {editingProduct?.name}
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Add Variant Form */}
+          <div className="border rounded-lg p-4 mb-4">
+            <h4 className="font-medium mb-3">{editingVariant ? 'Edit Variant' : 'Add New Variant'}</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="sku">SKU</Label>
+                <Input
+                  id="sku"
+                  value={variantForm.sku}
+                  onChange={(e) => setVariantForm({ ...variantForm, sku: e.target.value })}
+                  placeholder="e.g., TSHIRT-S-M"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="color">Color</Label>
+                <Input
+                  id="color"
+                  value={variantForm.color}
+                  onChange={(e) => setVariantForm({ ...variantForm, color: e.target.value })}
+                  placeholder="e.g., Black, White"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="size">Size</Label>
+                <Input
+                  id="size"
+                  value={variantForm.size}
+                  onChange={(e) => setVariantForm({ ...variantForm, size: e.target.value })}
+                  placeholder="e.g., S, M, L, XL"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="variantPrice">Price</Label>
+                <Input
+                  id="variantPrice"
+                  type="number"
+                  value={variantForm.price}
+                  onChange={(e) => setVariantForm({ ...variantForm, price: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="salePrice">Sale Price</Label>
+                <Input
+                  id="salePrice"
+                  type="number"
+                  value={variantForm.salePrice}
+                  onChange={(e) => setVariantForm({ ...variantForm, salePrice: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  value={variantForm.quantity}
+                  onChange={(e) => setVariantForm({ ...variantForm, quantity: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-3">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  setEditingVariant(null)
+                  setVariantForm({ sku: '', size: '', color: '', price: 0, salePrice: 0, quantity: 0 })
+                }}
+              >
+                Clear
+              </Button>
+              <Button
+                type="button"
+                onClick={async () => {
+                  if (!editingProduct || !variantForm.sku || !variantForm.size || !variantForm.color) {
+                    showToast.error('Please fill required fields')
+                    return
+                  }
+                  try {
+                    if (editingVariant) {
+                      await productApi.updateVariant(editingVariant.id, variantForm)
+                      showToast.success('Variant updated')
+                    } else {
+                      await productApi.createVariant(editingProduct.id, variantForm)
+                      showToast.success('Variant created')
+                    }
+                    setVariantForm({ sku: '', size: '', color: '', price: 0, salePrice: 0, quantity: 0 })
+                    setEditingVariant(null)
+                    fetchProducts()
+                  } catch (error) {
+                    handleApiError(error, 'Failed to save variant')
+                  }
+                }}
+              >
+                {editingVariant ? 'Update' : 'Add'} Variant
+              </Button>
+            </div>
+          </div>
+
+          {/* Variants List */}
+          <div>
+            <h4 className="font-medium mb-2">Current Variants</h4>
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left">SKU</th>
+                    <th className="px-3 py-2 text-left">Color</th>
+                    <th className="px-3 py-2 text-left">Size</th>
+                    <th className="px-3 py-2 text-right">Price</th>
+                    <th className="px-3 py-2 text-right">Qty</th>
+                    <th className="px-3 py-2 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {editingProduct?.variants?.map((variant) => (
+                    <tr key={variant.id} className="border-t">
+                      <td className="px-3 py-2">{variant.sku}</td>
+                      <td className="px-3 py-2">{variant.color}</td>
+                      <td className="px-3 py-2">{variant.size}</td>
+                      <td className="px-3 py-2 text-right">
+                        {Number(variant.price).toLocaleString('vi-VN')} ₫
+                      </td>
+                      <td className="px-3 py-2 text-right">{variant.quantity}</td>
+                      <td className="px-3 py-2 text-center">
+                        <div className="flex justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingVariant(variant)
+                              setVariantForm({
+                                sku: variant.sku,
+                                size: variant.size,
+                                color: variant.color,
+                                price: variant.price,
+                                salePrice: variant.salePrice || 0,
+                                quantity: variant.quantity,
+                              })
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              const confirmed = await confirm({
+                                type: 'warning',
+                                title: 'Delete Variant',
+                                description: 'Are you sure you want to delete this variant?',
+                                confirmText: 'Delete',
+                                cancelText: 'Cancel',
+                              })
+                              if (confirmed) {
+                                try {
+                                  await productApi.deleteVariant(variant.id)
+                                  showToast.success('Variant deleted')
+                                  fetchProducts()
+                                } catch (error) {
+                                  handleApiError(error, 'Failed to delete variant')
+                                }
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3 text-red-500" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!editingProduct?.variants || editingProduct.variants.length === 0) && (
+                    <tr>
+                      <td colSpan={6} className="px-3 py-4 text-center text-gray-500">
+                        No variants yet
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

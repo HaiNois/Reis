@@ -72,7 +72,7 @@ export default function AdminLayout() {
         {/* Sidebar */}
         <aside
           className={`bg-white shadow min-h-screen transition-all duration-300 ease-in-out ${
-            sidebarOpen ? 'w-64 opacity-100 translate-x-0' : 'w-17 opacity-90 -translate-x-0'
+            sidebarOpen ? 'w-64 opacity-100 translate-x-0' : 'w-[86px] opacity-90 -translate-x-0'
           }`}
         >
           <nav className="p-4">

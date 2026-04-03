@@ -99,6 +99,38 @@ export class ProductController {
     })
   })
 
+  addProductsToCategory = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const { productIds } = req.body
+    const result = await productService.addProductsToCategory(id, productIds)
+
+    res.json({
+      success: true,
+      data: result,
+    })
+  })
+
+  removeProductsFromCategory = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const { productIds } = req.body
+    const result = await productService.removeProductsFromCategory(id, productIds)
+
+    res.json({
+      success: true,
+      data: result,
+    })
+  })
+
+  getCategoryProducts = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const products = await productService.getCategoryProducts(id)
+
+    res.json({
+      success: true,
+      data: products,
+    })
+  })
+
   // ==================== ADMIN PRODUCTS ====================
 
   getProductById = asyncHandler(async (req, res) => {

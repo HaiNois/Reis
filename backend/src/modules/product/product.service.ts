@@ -390,6 +390,39 @@ export class ProductService {
     await prisma.category.delete({ where: { id } })
   }
 
+  // Category-Product Management
+  async addProductsToCategory(categoryId: string, productIds: string[]) {
+    const category = await prisma.category.findUnique({ where: { id: categoryId } })
+    if (!category) {
+      throw new NotFoundError('Category')
+    }
+
+    return prisma.product.updateMany({
+      where: { id: { in: productIds } },
+      data: { categoryId },
+    })
+  }
+
+  async removeProductsFromCategory(categoryId: string, productIds: string[]) {
+    return prisma.product.updateMany({
+      where: { id: { in: productIds }, categoryId },
+      data: { categoryId: null },
+    })
+  }
+
+  async getCategoryProducts(categoryId: string) {
+    const category = await prisma.category.findUnique({ where: { id: categoryId } })
+    if (!category) {
+      throw new NotFoundError('Category')
+    }
+
+    return prisma.product.findMany({
+      where: { categoryId },
+      include: { images: true, variants: true, category: true },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
   // Related products
   async getRelatedProducts(productId: string, limit: number = 4) {
     const product = await prisma.product.findUnique({

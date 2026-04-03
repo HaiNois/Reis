@@ -232,6 +232,19 @@
     "rating": "Xếp hạng",
     "featured": "Nổi bật",
     "errorSaving": "Lỗi khi lưu. Đảm bảo backend đang chạy.",
-    "confirmDelete": "Bạn có chắc muốn xóa?"
+    "confirmDelete": "Bạn có chắc muốn xóa?",
+    "selectCollection": "Chọn bộ sưu tập",
+    "none": "Không chọn",
+    "mediaTilesCollectionHint": "Nếu chọn bộ sưu tập, section sẽ hiển thị sản phẩm từ bộ sưu tập đó thay vì media tiles.",
+    "collection": "Bộ sưu tập",
+    "mediaTilesCollectionRequired": "Vui lòng chọn bộ sưu tập cho section MEDIA_TILES",
+    "addSelectedProducts": "Thêm đã chọn",
+    "removeSelectedProducts": "Xóa đã chọn",
+    "productsAdded": "Đã thêm sản phẩm vào danh mục",
+    "productsRemoved": "Đã xóa sản phẩm khỏi danh mục",
+    "failedAddProduct": "Lỗi khi thêm sản phẩm",
+    "failedRemoveProduct": "Lỗi khi xóa sản phẩm",
+    "selectProducts": "Chọn sản phẩm",
+    "productsSelected": "sản phẩm đã chọn"
   }
 }

@@ -100,6 +100,7 @@ export async function uploadImage(
   }
 
   // Validate file
+  
   validateFile(buffer, contentType)
 
   // Generate unique key
