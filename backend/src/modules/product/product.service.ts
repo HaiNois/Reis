@@ -15,7 +15,9 @@ export class ProductService {
   async getProducts(filters: ProductFilters) {
     const { category, minPrice, maxPrice, status, isFeatured, isNewArrival, search, sort, page, limit } = filters
 
-    const where: any = {}
+    const where: any = {
+      isDelete: false,
+    }
 
     if (category) {
       where.category = { slug: category }
@@ -186,7 +188,7 @@ export class ProductService {
     // Soft delete
     return prisma.product.update({
       where: { id },
-      data: { deletedAt: new Date() },
+      data: { isDelete: true },
     })
   }
 
@@ -199,7 +201,7 @@ export class ProductService {
 
     return prisma.product.update({
       where: { id },
-      data: { deletedAt: null },
+      data: { isDelete: false },
     })
   }
 
@@ -325,7 +327,12 @@ export class ProductService {
       return await prisma.category.findMany({
         where: { parentId: null },
         include: {
-          children: true,
+          children: {
+            include: {
+              _count: { select: { products: true } },
+            },
+          },
+          _count: { select: { products: true } },
         },
       })
     } catch (error) {
@@ -386,6 +393,39 @@ export class ProductService {
     }
 
     await prisma.category.delete({ where: { id } })
+  }
+
+  // Category-Product Management
+  async addProductsToCategory(categoryId: string, productIds: string[]) {
+    const category = await prisma.category.findUnique({ where: { id: categoryId } })
+    if (!category) {
+      throw new NotFoundError('Category')
+    }
+
+    return prisma.product.updateMany({
+      where: { id: { in: productIds } },
+      data: { categoryId },
+    })
+  }
+
+  async removeProductsFromCategory(categoryId: string, productIds: string[]) {
+    return prisma.product.updateMany({
+      where: { id: { in: productIds }, categoryId },
+      data: { categoryId: null },
+    })
+  }
+
+  async getCategoryProducts(categoryId: string) {
+    const category = await prisma.category.findUnique({ where: { id: categoryId } })
+    if (!category) {
+      throw new NotFoundError('Category')
+    }
+
+    return prisma.product.findMany({
+      where: { categoryId },
+      include: { images: true, variants: true, category: true },
+      orderBy: { createdAt: 'desc' },
+    })
   }
 
   // Related products

@@ -6,7 +6,6 @@ const prisma = new PrismaClient()
 export class CollectionService {
   async findAll() {
     return prisma.collection.findMany({
-      include: { catalog: true },
       orderBy: { sortOrder: 'asc' },
     })
   }
@@ -14,15 +13,6 @@ export class CollectionService {
   async findById(id: string) {
     return prisma.collection.findUnique({
       where: { id },
-      include: { catalog: true },
-    })
-  }
-
-  async findByCatalog(catalogId: string) {
-    return prisma.collection.findMany({
-      where: { catalogId },
-      include: { catalog: true },
-      orderBy: { sortOrder: 'asc' },
     })
   }
 
@@ -44,7 +34,7 @@ export class CollectionService {
       productId,
       sortOrder: index,
     }))
-    return prisma.collectionProduct.createMany({ data })
+    return prisma.collectionProduct.createMany({ data, skipDuplicates: true })
   }
 
   async removeProducts(collectionId: string, productIds: string[]) {

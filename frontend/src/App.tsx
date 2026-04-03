@@ -21,10 +21,11 @@ import HomepageSectionsPage from './pages/admin/HomepageSectionsPage'
 import FeedbackPage from './pages/admin/FeedbackPage'
 import CollectionsPage from './pages/admin/CollectionsPage'
 import { Toaster } from '@/components/ui/toaster'
+import { ConfirmProvider } from './components/providers/confirm-provider'
 
 function App() {
   return (
-    <>
+    <ConfirmProvider>
       <Routes>
         {/* Storefront Routes */}
         <Route path="/" element={<MainLayout />}>
@@ -57,7 +58,7 @@ function App() {
         </Route>
       </Routes>
       <Toaster />
-    </>
+    </ConfirmProvider>
   )
 }
 

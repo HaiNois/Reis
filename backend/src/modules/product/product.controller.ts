@@ -52,9 +52,19 @@ export class ProductController {
   getCategories = asyncHandler(async (req, res) => {
     const categories = await productService.getCategories()
 
+    // Transform _count to productCount for frontend compatibility
+    const transformed = categories.map((cat: any) => ({
+      ...cat,
+      productCount: cat._count?.products ?? 0,
+      children: cat.children?.map((child: any) => ({
+        ...child,
+        productCount: child._count?.products ?? 0,
+      })),
+    }))
+
     res.json({
       success: true,
-      data: categories,
+      data: transformed,
     })
   })
 
@@ -96,6 +106,38 @@ export class ProductController {
     res.json({
       success: true,
       data: { message: 'Category deleted successfully' },
+    })
+  })
+
+  addProductsToCategory = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const { productIds } = req.body
+    const result = await productService.addProductsToCategory(id, productIds)
+
+    res.json({
+      success: true,
+      data: result,
+    })
+  })
+
+  removeProductsFromCategory = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const { productIds } = req.body
+    const result = await productService.removeProductsFromCategory(id, productIds)
+
+    res.json({
+      success: true,
+      data: result,
+    })
+  })
+
+  getCategoryProducts = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const products = await productService.getCategoryProducts(id)
+
+    res.json({
+      success: true,
+      data: products,
     })
   })
 

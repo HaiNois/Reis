@@ -14,10 +14,10 @@ export const createProductSchema = z.object({
   materialEn: z.string().optional(),
   careGuide: z.string().optional(),
   careGuideEn: z.string().optional(),
-  price: z.number().positive('Price must be positive'),
-  compareAtPrice: z.number().positive().optional(),
+  price: z.coerce.number().positive('Price must be positive'),
+  compareAtPrice: z.coerce.number().positive().optional(),
   image: z.string().optional(), // Main product image URL
-  categoryId: z.string().uuid().optional(),
+  categoryId: z.string().uuid().nullable().optional(),
   status: z.enum(['ACTIVE', 'DRAFT', 'ARCHIVED']).optional(),
   isFeatured: z.boolean().optional(),
   isNewArrival: z.boolean().optional(),
@@ -72,7 +72,6 @@ export const createCategorySchema = z.object({
   slug: z.string().min(1, 'Slug is required'),
   description: z.string().optional(),
   descriptionEn: z.string().optional(),
-  image: z.string().url().optional(),
   parentId: z.string().uuid().optional(),
 })
 

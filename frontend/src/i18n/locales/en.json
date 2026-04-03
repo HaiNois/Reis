@@ -233,6 +233,19 @@
     "rating": "Rating",
     "featured": "Featured",
     "errorSaving": "Error saving. Make sure backend is running.",
-    "confirmDelete": "Are you sure you want to delete?"
+    "confirmDelete": "Are you sure you want to delete?",
+    "selectCollection": "Select Collection",
+    "none": "None",
+    "mediaTilesCollectionHint": "If a collection is selected, the section will display products from that collection instead of media tiles.",
+    "collection": "Collection",
+    "mediaTilesCollectionRequired": "Please select a collection for MEDIA_TILES section",
+    "addSelectedProducts": "Add Selected",
+    "removeSelectedProducts": "Remove Selected",
+    "productsAdded": "Products added to category",
+    "productsRemoved": "Products removed from category",
+    "failedAddProduct": "Failed to add products",
+    "failedRemoveProduct": "Failed to remove products",
+    "selectProducts": "Select Products",
+    "productsSelected": "products selected"
   }
 }

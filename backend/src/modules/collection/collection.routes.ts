@@ -7,7 +7,6 @@ const router = Router()
 // Public routes
 router.get('/', collectionController.findAll)
 router.get('/:id', collectionController.findById)
-router.get('/catalog/:catalogId', collectionController.findByCatalog)
 router.get('/:id/products', collectionController.getProducts)
 
 // Protected routes (admin)

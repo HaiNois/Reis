@@ -2,7 +2,6 @@ import { z } from 'zod'
 
 // Collection DTOs
 export const CreateCollectionDto = z.object({
-  catalogId: z.string().uuid(),
   name: z.string().min(1),
   nameEn: z.string().optional(),
   slug: z.string().min(1),
@@ -16,7 +15,6 @@ export const UpdateCollectionDto = CreateCollectionDto.partial()
 
 export const CollectionResponse = z.object({
   id: z.string(),
-  catalogId: z.string(),
   name: z.string(),
   nameEn: z.string().nullable(),
   slug: z.string(),

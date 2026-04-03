@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { orderApi } from '@/services/orderApi'
+import { Spinner } from '@/components/ui/spinner'
 
 export default function DashboardPage() {
   const { t } = useTranslation()
@@ -50,7 +51,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-2 border-black border-t-transparent rounded-full" />
+        <Spinner size="lg" className="text-black" />
       </div>
     )
   }

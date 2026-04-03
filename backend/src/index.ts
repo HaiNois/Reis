@@ -16,6 +16,7 @@ import bannerRoutes from './modules/banner/banner.routes.js'
 
 // Homepage CMS
 import homepageRoutes from './modules/homepage/homepage.routes.js'
+import homepageSectionRoutes from './modules/homepage-section/homepage-section.routes.js'
 import homepageStorefrontRoutes from './modules/homepage/storefront.routes.js'
 
 // Admin routes
@@ -25,6 +26,7 @@ import bannerAdminRoutes from './modules/banner/admin.routes.js'
 import feedbackRoutes from './modules/feedback/feedback.routes.js'
 import uploadRoutes from './modules/upload/upload.routes.js'
 import collectionRoutes from './modules/collection/collection.routes.js'
+import collectionAdminRoutes from './modules/collection/admin.routes.js'
 import catalogRoutes from './modules/catalog/catalog.routes.js'
 
 const app = express()
@@ -73,8 +75,9 @@ app.use('/api/v1/banners', bannerRoutes)
 app.use('/api/v1/admin/products', productAdminRoutes)
 app.use('/api/v1/admin/categories', categoryAdminRoutes)
 app.use('/api/v1/admin/banners', bannerAdminRoutes)
-app.use('/api/v1/admin/homepage-sections', homepageRoutes)
+app.use('/api/v1/admin/homepage-sections', homepageSectionRoutes)
 app.use('/api/v1/admin/orders', orderRoutes)
+app.use('/api/v1/admin/collections', collectionAdminRoutes)
 
 // Storefront routes
 app.use('/api/v1/storefront/homepage', homepageStorefrontRoutes)

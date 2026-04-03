@@ -5,6 +5,8 @@ import type {
   UpdateHomepageSectionInput,
   AddProductToSectionInput,
   ReorderProductsInput,
+  CreateHomepageSectionItemInput,
+  UpdateHomepageSectionItemInput,
 } from './homepage-section.dto.js'
 
 export class HomepageSectionService {
@@ -18,7 +20,7 @@ export class HomepageSectionService {
     const { page = 1, limit = 20, sectionType, isActive } = params
     const skip = (page - 1) * limit
 
-    const where: any = {}
+    const where: any = { deletedAt: null } // Only get non-deleted sections
     if (sectionType) where.sectionType = sectionType
     if (isActive !== undefined) where.isActive = isActive
 
@@ -102,21 +104,23 @@ export class HomepageSectionService {
 
   // Create new section
   async createSection(data: CreateHomepageSectionInput) {
+    // Generate unique slug if exists
+    let slug = data.slug
+    let counter = 1
+    while (await prisma.homepageSection.findUnique({ where: { slug } })) {
+      slug = `${data.slug}-${counter}`
+      counter++
+    }
+
     return prisma.homepageSection.create({
       data: {
         sectionType: data.sectionType,
         title: data.title,
-        titleEn: data.titleEn || null,
+        slug,
         subtitle: data.subtitle || null,
-        subtitleEn: data.subtitleEn || null,
-        slug: data.slug,
         description: data.description || null,
-        descriptionEn: data.descriptionEn || null,
-        imageUrl: data.imageUrl || null,
-        mobileImageUrl: data.mobileImageUrl || null,
-        ctaLabel: data.ctaLabel || null,
-        ctaLabelEn: data.ctaLabelEn || null,
-        ctaUrl: data.ctaUrl || null,
+        layout: data.layout || null,
+        configJson: data.configJson as any || null,
         isActive: data.isActive ?? true,
         sortOrder: data.sortOrder ?? 0,
         startsAt: data.startsAt ? new Date(data.startsAt) : null,
@@ -134,18 +138,12 @@ export class HomepageSectionService {
       where: { id },
       data: {
         ...(data.sectionType && { sectionType: data.sectionType }),
-        ...(data.title && { title: data.title }),
-        ...(data.titleEn !== undefined && { titleEn: data.titleEn || null }),
+        ...(data.title !== undefined && { title: data.title }),
         ...(data.subtitle !== undefined && { subtitle: data.subtitle }),
-        ...(data.subtitleEn !== undefined && { subtitleEn: data.subtitleEn }),
         ...(data.slug && { slug: data.slug }),
         ...(data.description !== undefined && { description: data.description }),
-        ...(data.descriptionEn !== undefined && { descriptionEn: data.descriptionEn }),
-        ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl || null }),
-        ...(data.mobileImageUrl !== undefined && { mobileImageUrl: data.mobileImageUrl || null }),
-        ...(data.ctaLabel !== undefined && { ctaLabel: data.ctaLabel }),
-        ...(data.ctaLabelEn !== undefined && { ctaLabelEn: data.ctaLabelEn }),
-        ...(data.ctaUrl !== undefined && { ctaUrl: data.ctaUrl }),
+        ...(data.layout !== undefined && { layout: data.layout }),
+        ...(data.configJson !== undefined && { configJson: data.configJson as any }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
         ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
         ...(data.startsAt !== undefined && { startsAt: data.startsAt ? new Date(data.startsAt) : null }),
@@ -245,6 +243,140 @@ export class HomepageSectionService {
         },
       },
     })
+  }
+
+  // ==================== SECTION ITEMS ====================
+
+  // Get items for a section
+  async getItems(sectionId: string) {
+    await this.getSectionById(sectionId)
+
+    return prisma.homepageSectionItem.findMany({
+      where: {
+        homepageSectionId: sectionId,
+        deletedAt: null,
+      },
+      orderBy: { sortOrder: 'asc' },
+    })
+  }
+
+  // Get single item
+  async getItemById(itemId: string) {
+    const item = await prisma.homepageSectionItem.findUnique({
+      where: { id: itemId },
+    })
+
+    if (!item) {
+      throw new NotFoundError('HomepageSectionItem')
+    }
+
+    return item
+  }
+
+  // Create item
+  async createItem(sectionId: string, data: CreateHomepageSectionItemInput) {
+    await this.getSectionById(sectionId)
+
+    // Get max sort order
+    const maxOrder = await prisma.homepageSectionItem.aggregate({
+      where: { homepageSectionId: sectionId },
+      _max: { sortOrder: true },
+    })
+
+    // Build metaJson with productId or collectionId if provided
+    const metaJson = data.metaJson || {}
+    if (data.itemType === 'PRODUCT' && (data.metaJson as any)?.productId) {
+      metaJson.productId = (data.metaJson as any).productId
+    }
+    if (data.itemType === 'COLLECTION' && (data.metaJson as any)?.collectionId) {
+      metaJson.collectionId = (data.metaJson as any).collectionId
+    }
+
+    return prisma.homepageSectionItem.create({
+      data: {
+        homepageSectionId: sectionId,
+        itemType: data.itemType,
+        title: data.title || null,
+        subtitle: data.subtitle || null,
+        description: data.description || null,
+        mediaUrl: data.mediaUrl || null,
+        mobileMediaUrl: data.mobileMediaUrl || null,
+        mediaType: data.mediaType || 'IMAGE',
+        ctaLabel: data.ctaLabel || null,
+        ctaUrl: data.ctaUrl || null,
+        linkTarget: data.linkTarget || 'SELF',
+        metaJson: Object.keys(metaJson).length > 0 ? metaJson : null,
+        isActive: data.isActive ?? true,
+        sortOrder: data.sortOrder ?? (maxOrder._max.sortOrder ?? 0) + 1,
+      },
+    })
+  }
+
+  // Update item
+  async updateItem(itemId: string, data: UpdateHomepageSectionItemInput) {
+    const existing = await this.getItemById(itemId)
+
+    // Merge metaJson - preserve productId/collectionId if not being updated
+    const metaJson = data.metaJson || {}
+    if (data.itemType === 'PRODUCT' && !metaJson.productId && existing.metaJson) {
+      const existingMeta = typeof existing.metaJson === 'string'
+        ? JSON.parse(existing.metaJson)
+        : existing.metaJson
+      if (existingMeta.productId) metaJson.productId = existingMeta.productId
+    }
+    if (data.itemType === 'COLLECTION' && !metaJson.collectionId && existing.metaJson) {
+      const existingMeta = typeof existing.metaJson === 'string'
+        ? JSON.parse(existing.metaJson)
+        : existing.metaJson
+      if (existingMeta.collectionId) metaJson.collectionId = existingMeta.collectionId
+    }
+
+    return prisma.homepageSectionItem.update({
+      where: { id: itemId },
+      data: {
+        ...(data.itemType && { itemType: data.itemType }),
+        ...(data.title !== undefined && { title: data.title || null }),
+        ...(data.subtitle !== undefined && { subtitle: data.subtitle || null }),
+        ...(data.description !== undefined && { description: data.description || null }),
+        ...(data.mediaUrl !== undefined && { mediaUrl: data.mediaUrl || null }),
+        ...(data.mobileMediaUrl !== undefined && { mobileMediaUrl: data.mobileMediaUrl || null }),
+        ...(data.mediaType && { mediaType: data.mediaType }),
+        ...(data.ctaLabel !== undefined && { ctaLabel: data.ctaLabel || null }),
+        ...(data.ctaUrl !== undefined && { ctaUrl: data.ctaUrl || null }),
+        ...(data.linkTarget && { linkTarget: data.linkTarget }),
+        ...(data.metaJson !== undefined || Object.keys(metaJson).length > 0
+          ? { metaJson: Object.keys(metaJson).length > 0 ? metaJson : null }
+          : {}),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+        ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+      },
+    })
+  }
+
+  // Delete item (soft delete)
+  async deleteItem(itemId: string) {
+    const item = await this.getItemById(itemId)
+
+    return prisma.homepageSectionItem.update({
+      where: { id: itemId },
+      data: { deletedAt: new Date() },
+    })
+  }
+
+  // Reorder items
+  async reorderItems(sectionId: string, items: { id: string; sortOrder: number }[]) {
+    await this.getSectionById(sectionId)
+
+    await prisma.$transaction(
+      items.map((item) =>
+        prisma.homepageSectionItem.update({
+          where: { id: item.id },
+          data: { sortOrder: item.sortOrder },
+        })
+      )
+    )
+
+    return this.getItems(sectionId)
   }
 
   // Get active sections for storefront

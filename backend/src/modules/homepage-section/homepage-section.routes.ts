@@ -16,6 +16,13 @@ router.post('/:id/products', authenticate, requireAdmin, homepageSectionControll
 router.patch('/:id/products/sort', authenticate, requireAdmin, homepageSectionController.reorderProducts)
 router.delete('/:id/products/:productId', authenticate, requireAdmin, homepageSectionController.removeProduct)
 
+// Admin - Item management in section
+router.get('/:id/items', authenticate, requireAdmin, homepageSectionController.getItems)
+router.post('/:id/items', authenticate, requireAdmin, homepageSectionController.createItem)
+router.patch('/:id/items/sort', authenticate, requireAdmin, homepageSectionController.reorderItems)
+router.patch('/:id/items/:itemId', authenticate, requireAdmin, homepageSectionController.updateItem)
+router.delete('/:id/items/:itemId', authenticate, requireAdmin, homepageSectionController.deleteItem)
+
 // Storefront routes - /api/v1/storefront/homepage
 router.get('/storefront/homepage', homepageSectionController.getActiveSections)
 

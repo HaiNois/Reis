@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { uploadApi } from '@/services/uploadApi'
+import { Spinner } from '@/components/ui/spinner'
 
 interface ImageUploadProps {
   value?: string
@@ -44,6 +45,14 @@ export function ImageUpload({
   const createPreview = (file: File): string => {
     return URL.createObjectURL(file)
   }
+
+  // Sync previews when value changes (e.g., when editing an existing image)
+  useEffect(() => {
+    const images = getImages()
+    if (images.length > 0 && previews.length === 0) {
+      setPreviews(images.map(url => ({ url })))
+    }
+  }, [value])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -150,7 +159,7 @@ export function ImageUpload({
         >
           {uploading ? (
             <span className="flex items-center gap-2">
-              <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+              <Spinner size="sm" className="text-white" />
               Uploading {uploadProgress}%
             </span>
           ) : (
