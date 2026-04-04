@@ -12,6 +12,7 @@ import RegisterPage from './pages/account/RegisterPage'
 import ProfilePage from './pages/account/ProfilePage'
 import OrderHistoryPage from './pages/account/OrderHistoryPage'
 import OrderDetailPage from './pages/account/OrderDetailPage'
+import OrderTrackingPage from './pages/storefront/OrderTrackingPage'
 import DashboardPage from './pages/admin/DashboardPage'
 import ProductsPage from './pages/admin/ProductsPage'
 import CategoriesPage from './pages/admin/CategoriesPage'
@@ -44,6 +45,7 @@ function App() {
           <Route path="account" element={<ProfilePage />} />
           <Route path="account/orders" element={<OrderHistoryPage />} />
           <Route path="account/orders/:orderNumber" element={<OrderDetailPage />} />
+          <Route path="track" element={<OrderTrackingPage />} />
         </Route>
 
         {/* Admin Routes */}

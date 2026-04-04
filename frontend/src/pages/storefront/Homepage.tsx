@@ -268,7 +268,7 @@ function ProductRailSection({ section }: { section: HomepageSection }) {
           }}
           plugins={[
             AutoPlay({
-              delay: 5000,
+              delay: 3000,
               stopOnInteraction: false,
             }),
           ]}

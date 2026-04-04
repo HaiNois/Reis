@@ -32,10 +32,23 @@ export default function ProductPage() {
         const response = await productApi.getProductBySlug(slug)
         setProduct(response.data)
 
-        // Set main image from product images
-        if (response.data.images && response.data.images.length > 0) {
-          setMainImage(getMainImageUrl(response.data.images))
+        // Set main image - handle both legacy `image` string and new `images` array
+        let imageUrl = FALLBACK_IMAGE
+        if (response.data.image) {
+          // Legacy: image is a JSON string array
+          try {
+            const imageUrls = JSON.parse(response.data.image)
+            if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+              imageUrl = imageUrls[0]
+            }
+          } catch {
+            imageUrl = response.data.image
+          }
+        } else if (response.data.images && response.data.images.length > 0) {
+          // New: images array with publicUrl/url
+          imageUrl = getMainImageUrl(response.data.images)
         }
+        setMainImage(imageUrl)
       } catch (error) {
         console.error('Failed to fetch product:', error)
       } finally {
@@ -53,8 +66,33 @@ export default function ProductPage() {
   }, [product?.id])
 
   const currentProduct = product
-  const productImages = currentProduct?.images || []
-  const thumbnails = getThumbnailImages(productImages)
+
+  // Build images array from legacy `image` field or new `images` relation
+  const productImages = (() => {
+    if (currentProduct?.images && currentProduct.images.length > 0) {
+      return currentProduct.images
+    }
+    if (currentProduct?.image) {
+      try {
+        const imageUrls = JSON.parse(currentProduct.image)
+        if (Array.isArray(imageUrls)) {
+          return imageUrls.map((url: string, idx: number) => ({
+            id: String(idx),
+            publicUrl: url,
+            url,
+            objectKey: '',
+            sortOrder: idx,
+            isPrimary: idx === 0,
+          }))
+        }
+      } catch {
+        return []
+      }
+    }
+    return []
+  })()
+
+  const thumbnails = productImages.slice(1) // All except first
   const variants: ProductVariant[] = currentProduct?.variants || []
 
   // Extract unique colors and sizes from variants
@@ -189,21 +227,25 @@ export default function ProductPage() {
           {/* Thumbnails */}
           {thumbnails.length > 0 && (
             <div className="flex gap-2 overflow-x-auto">
-              {thumbnails.map((img: ProductImage, index: number) => (
-                <button
-                  key={img.id || index}
-                  onClick={() => handleImageClick(getImageUrl(img))}
-                  className={`w-20 h-24 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
-                    mainImage === getImageUrl(img) ? 'border-black' : 'border-transparent hover:border-gray-300'
-                  }`}
-                >
-                  <img
-                    src={getImageUrl(img)}
-                    alt={`Thumbnail ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
+              {thumbnails.map((img: any, index: number) => {
+                // Handle both new ProductImage format and legacy {publicUrl, url} format
+                const imgUrl = img.publicUrl || img.url || ''
+                return (
+                  <button
+                    key={img.id || index}
+                    onClick={() => handleImageClick(imgUrl)}
+                    className={`w-20 h-24 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
+                      mainImage === imgUrl ? 'border-black' : 'border-transparent hover:border-gray-300'
+                    }`}
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>

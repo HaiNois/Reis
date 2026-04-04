@@ -447,3 +447,35 @@ export const collectionApi = {
     return response.data
   },
 }
+
+// ==================== ORDER API ====================
+
+export interface OrderTrackingInfo {
+  labelId: string
+  partnerId: string
+  status: string
+  statusText: string
+  statusVi: string
+  created: string
+  modified: string
+  pickDate: string
+  deliverDate: string
+  customer: {
+    fullname: string
+    tel: string
+    address: string
+  }
+  money: {
+    ship: number
+    pick: number
+  }
+  weight: number
+}
+
+export const orderApi = {
+  // Public - Track order by GHTK label_id
+  trackOrder: async (labelId: string) => {
+    const response = await api.get(`/orders/track/${labelId}`)
+    return response.data
+  },
+}

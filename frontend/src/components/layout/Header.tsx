@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
 import { useCartStore } from '@/stores/cartStore'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+import CartDrawer from '@/components/cart/CartDrawer'
 
 export default function Header() {
   const { t } = useTranslation()
@@ -11,6 +12,7 @@ export default function Header() {
   const { items } = useCartStore()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isCartOpen, setIsCartOpen] = useState(false)
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
@@ -119,7 +121,7 @@ export default function Header() {
             )}
 
             {/* Cart */}
-            <Link to="/cart" className="relative p-2 hover:text-gray-600">
+            <button onClick={() => setIsCartOpen(true)} className="relative p-2 hover:text-gray-600">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
@@ -128,7 +130,7 @@ export default function Header() {
                   {cartCount}
                 </span>
               )}
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -210,6 +212,9 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      {/* Cart Drawer */}
+      <CartDrawer open={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </header>
   )
 }

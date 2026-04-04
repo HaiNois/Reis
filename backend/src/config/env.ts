@@ -33,6 +33,14 @@ export const envSchema = z.object({
   R2_API_TOKEN: z.string().default(''),
   R2_BUCKET_NAME: z.string().default('uploads'),
   R2_PUBLIC_URL: z.string().default(''),
+
+  // GHTK
+  GHTK_API_TOKEN: z.string().default(''),
+
+  // PayPal
+  PAYPAL_MODE: z.enum(['sandbox', 'live']).default('sandbox'),
+  PAYPAL_CLIENT_ID: z.string().default(''),
+  PAYPAL_CLIENT_SECRET: z.string().default(''),
 })
 
 export type Env = z.infer<typeof envSchema>

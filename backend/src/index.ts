@@ -11,6 +11,7 @@ import authRoutes from './modules/auth/auth.routes.js'
 import productRoutes from './modules/product/product.routes.js'
 import categoryRoutes from './modules/product/category.routes.js'
 import orderRoutes from './modules/order/order.routes.js'
+import orderAdminRoutes from './modules/order/admin.routes.js'
 import cartRoutes from './modules/cart/cart.routes.js'
 import bannerRoutes from './modules/banner/banner.routes.js'
 
@@ -27,6 +28,7 @@ import feedbackRoutes from './modules/feedback/feedback.routes.js'
 import uploadRoutes from './modules/upload/upload.routes.js'
 import collectionRoutes from './modules/collection/collection.routes.js'
 import collectionAdminRoutes from './modules/collection/admin.routes.js'
+import paymentRoutes from './modules/payment/payment.routes.js'
 import catalogRoutes from './modules/catalog/catalog.routes.js'
 
 const app = express()
@@ -76,7 +78,7 @@ app.use('/api/v1/admin/products', productAdminRoutes)
 app.use('/api/v1/admin/categories', categoryAdminRoutes)
 app.use('/api/v1/admin/banners', bannerAdminRoutes)
 app.use('/api/v1/admin/homepage-sections', homepageSectionRoutes)
-app.use('/api/v1/admin/orders', orderRoutes)
+app.use('/api/v1/admin/orders', orderAdminRoutes)
 app.use('/api/v1/admin/collections', collectionAdminRoutes)
 
 // Storefront routes
@@ -91,6 +93,7 @@ app.use('/api/v1/collections', collectionRoutes)
 
 // Catalog routes
 app.use('/api/v1', catalogRoutes)
+app.use('/api/v1', paymentRoutes)
 
 // Error handling
 app.use(errorHandler)
