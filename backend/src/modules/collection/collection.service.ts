@@ -1,27 +1,32 @@
 import { PrismaClient } from '@prisma/client'
 import { CreateCollectionDtoType, UpdateCollectionDtoType } from './collection.dto.js'
+import { transformProductImages, transformCollection } from '../../shared/utils/file.js'
 
 const prisma = new PrismaClient()
 
 export class CollectionService {
   async findAll() {
-    return prisma.collection.findMany({
+    const collections = await prisma.collection.findMany({
       orderBy: { sortOrder: 'asc' },
     })
+    return collections.map((c) => transformCollection(c))
   }
 
   async findById(id: string) {
-    return prisma.collection.findUnique({
+    const collection = await prisma.collection.findUnique({
       where: { id },
     })
+    return collection ? transformCollection(collection) : null
   }
 
   async create(data: CreateCollectionDtoType) {
-    return prisma.collection.create({ data })
+    const collection = await prisma.collection.create({ data })
+    return transformCollection(collection)
   }
 
   async update(id: string, data: UpdateCollectionDtoType) {
-    return prisma.collection.update({ where: { id }, data })
+    const collection = await prisma.collection.update({ where: { id }, data })
+    return transformCollection(collection)
   }
 
   async delete(id: string) {
@@ -52,7 +57,11 @@ export class CollectionService {
       include: { product: { include: { images: true, variants: true } } },
       orderBy: { sortOrder: 'asc' },
     })
-    return items.map((item) => item.product)
+    const products = items.map((item) => ({
+      ...item.product,
+      images: transformProductImages(item.product.images),
+    }))
+    return products
   }
 }
 

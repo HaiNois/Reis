@@ -84,8 +84,7 @@ export class HomepageService {
                 compareAtPrice: true,
                 status: true,
                 images: {
-                  take: 1,
-                  orderBy: { position: 'asc' },
+                  orderBy: { sortOrder: 'asc' },
                 },
               },
             },
@@ -368,57 +367,83 @@ export class HomepageService {
 
   // ==================== STOREFRONT ====================
 
+  /**
+   * Simplified response for storefront homepage
+   * Returns only essential fields: images, layout, and basic product info
+   */
   async getActiveHomepage() {
     const now = new Date()
 
-    return prisma.homepageSection.findMany({
+    const sections = await prisma.homepageSection.findMany({
       where: {
         pageKey: 'homepage',
         isActive: true,
         deletedAt: null,
         AND: [
-          {
-            OR: [
-              { startsAt: null },
-              { startsAt: { lte: now } },
-            ],
-          },
-          {
-            OR: [
-              { endsAt: null },
-              { endsAt: { gte: now } },
-            ],
-          },
+          { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+          { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
         ],
       },
       include: {
         items: {
           where: { isActive: true, deletedAt: null },
           orderBy: { sortOrder: 'asc' },
+          include: {
+            collection: true,
+          },
         },
         products: {
-          include: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
             product: {
               select: {
                 id: true,
                 name: true,
-                nameEn: true,
                 slug: true,
                 price: true,
-                compareAtPrice: true,
-                status: true,
-                images: {
-                  take: 1,
-                  orderBy: { position: 'asc' },
-                },
+                image: true,
               },
             },
           },
-          orderBy: { sortOrder: 'asc' },
         },
       },
       orderBy: { sortOrder: 'asc' },
     })
+
+    return sections.map((section) => ({
+      id: section.id,
+      sectionType: section.sectionType,
+      layout: section.layout,
+      title: section.title,
+      subtitle: section.subtitle,
+      items: section.items.map((item) => ({
+        id: item.id,
+        type: item.itemType,
+        title: item.collection?.name || item.title,
+        subtitle: item.collection?.description || item.subtitle,
+        image: item.collection?.image || item.mediaUrl,
+        mobileImage: item.mobileMediaUrl,
+        mediaType: item.mediaType,
+        cta: item.ctaLabel,
+        ctaUrl: item.collection?.slug ? `/collections/${item.collection.slug}` : item.ctaUrl,
+        collection: item.collection ? {
+          id: item.collection.id,
+          name: item.collection.name,
+          nameEn: item.collection.nameEn,
+          slug: item.collection.slug,
+          description: item.collection.description,
+          image: item.collection.image,
+          isActive: item.collection.isActive,
+        } : undefined,
+      })),
+      products: section.products.map((sp) => ({
+        id: sp.product.id,
+        name: sp.product.name,
+        slug: sp.product.slug,
+        price: sp.product.price,
+        image: sp.product.image || null,
+      })),
+    }))
   }
 
   async getSectionBySlug(slug: string) {
@@ -428,26 +453,23 @@ export class HomepageService {
         items: {
           where: { isActive: true, deletedAt: null },
           orderBy: { sortOrder: 'asc' },
+          include: {
+            collection: true,
+          },
         },
         products: {
-          include: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
             product: {
               select: {
                 id: true,
                 name: true,
-                nameEn: true,
                 slug: true,
                 price: true,
-                compareAtPrice: true,
-                status: true,
-                images: {
-                  take: 1,
-                  orderBy: { position: 'asc' },
-                },
+                image: true,
               },
             },
           },
-          orderBy: { sortOrder: 'asc' },
         },
       },
     })
@@ -456,7 +478,40 @@ export class HomepageService {
       throw new NotFoundError('HomepageSection')
     }
 
-    return section
+    return {
+      id: section.id,
+      sectionType: section.sectionType,
+      layout: section.layout,
+      title: section.title,
+      subtitle: section.subtitle,
+      items: section.items.map((item) => ({
+        id: item.id,
+        type: item.itemType,
+        title: item.collection?.name || item.title,
+        subtitle: item.collection?.description || item.subtitle,
+        image: item.collection?.image || item.mediaUrl,
+        mobileImage: item.mobileMediaUrl,
+        mediaType: item.mediaType,
+        cta: item.ctaLabel,
+        ctaUrl: item.collection?.slug ? `/collections/${item.collection.slug}` : item.ctaUrl,
+        collection: item.collection ? {
+          id: item.collection.id,
+          name: item.collection.name,
+          nameEn: item.collection.nameEn,
+          slug: item.collection.slug,
+          description: item.collection.description,
+          image: item.collection.image,
+          isActive: item.collection.isActive,
+        } : undefined,
+      })),
+      products: section.products.map((sp) => ({
+        id: sp.product.id,
+        name: sp.product.name,
+        slug: sp.product.slug,
+        price: sp.product.price,
+        image: sp.product.image || null,
+      })),
+    }
   }
 }
 

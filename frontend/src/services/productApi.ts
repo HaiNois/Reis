@@ -443,7 +443,7 @@ export const collectionApi = {
   },
 
   getCollectionProducts: async (collectionId: string) => {
-    const response = await api.get(`/admin/collections/${collectionId}/products`)
+    const response = await api.get(`/collections/${collectionId}/products`)
     return response.data
   },
 }

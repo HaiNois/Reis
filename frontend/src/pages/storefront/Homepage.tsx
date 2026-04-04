@@ -1,14 +1,13 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   homepageSectionApi,
   feedbackApi,
   HomepageSection,
   ProductImage as HomepageProductImage,
 } from "@/services/homepageApi";
-import { productApi } from "@/services/productApi";
-import { FALLBACK_IMAGE } from "@/services/productApi";
+import { collectionApi, FALLBACK_IMAGE, buildPublicUrl } from "@/services/productApi";
 import {
   Carousel,
   CarouselContent,
@@ -16,43 +15,173 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import AutoPlay from "embla-carousel-autoplay";
+import useEmblaCarousel from "embla-carousel-react";
 import { Spinner } from "@/components/ui/spinner";
 
-// Helper to get main image URL from various formats
-function getProductImageUrl(images: HomepageProductImage[] | undefined): string {
-  if (!images || images.length === 0) return FALLBACK_IMAGE
+// Sub-carousel component using embla directly
+function SubCarousel({
+  images,
+  productSlug,
+  productName,
+}: {
+  images: string[]
+  productSlug: string
+  productName?: string
+}) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true })
 
-  // Sort by position (legacy format)
-  const sorted = [...images].sort((a, b) => a.position - b.position)
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev()
+  }, [emblaApi])
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext()
+  }, [emblaApi])
+
+  return (
+    <div className="relative w-full h-full group/subcarousel">
+      <div ref={emblaRef} className="w-full h-full overflow-hidden">
+        <div className="flex h-full">
+          {images.map((imgUrl, idx) => (
+            <div key={idx} className="flex-none h-full w-full">
+              <Link
+                to={`/products/${productSlug}`}
+                className="block w-full h-full"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={imgUrl}
+                  alt={`${productName} ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </Link>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Navigation buttons - show on hover */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          scrollPrev()
+        }}
+        className="absolute left-1 top-1/2 -translate-y-1/2 h-8 w-8 bg-white/70 hover:bg-white/90 z-20 flex items-center justify-center opacity-0 group-hover/subcarousel:opacity-100 transition-opacity"
+      >
+        ‹
+      </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          scrollNext()
+        }}
+        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 bg-white/70 hover:bg-white/90 z-20 flex items-center justify-center opacity-0 group-hover/subcarousel:opacity-100 transition-opacity"
+      >
+        ›
+      </button>
+    </div>
+  )
+}
+
+// Helper to get main image URL from various formats
+function getProductImageUrl(images: HomepageProductImage[] | undefined, fallbackImage?: string | null): string {
+  // Handle JSON string array from backend: "[\"url1\",\"url2\"]"
+  if (typeof images === 'string') {
+    try {
+      const parsed = JSON.parse(images)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed[0]
+      return fallbackImage || FALLBACK_IMAGE
+    } catch {
+      return images || fallbackImage || FALLBACK_IMAGE
+    }
+  }
+
+  if (!images || images.length === 0) {
+    if (fallbackImage && typeof fallbackImage === 'string') {
+      try {
+        const parsed = JSON.parse(fallbackImage)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0]
+      } catch {}
+    }
+    return fallbackImage || FALLBACK_IMAGE
+  }
+
+  if (typeof images[0] === 'object' && 'url' in images[0]) {
+    return (images as { url: string }[])[0]?.url || fallbackImage || FALLBACK_IMAGE
+  }
+
+  const sorted = [...images].sort((a, b) => {
+    if (a.isPrimary && !b.isPrimary) return -1
+    if (!a.isPrimary && b.isPrimary) return 1
+    return a.sortOrder - b.sortOrder
+  })
   const mainImage = sorted[0]
 
-  // Support both legacy (url) and new format (publicUrl)
-  return mainImage?.url || mainImage?.publicUrl || FALLBACK_IMAGE
+  if (mainImage?.publicUrl) return mainImage.publicUrl
+  if (mainImage?.url) return mainImage.url
+  if (mainImage?.objectKey) return buildPublicUrl(mainImage.objectKey)
+  return fallbackImage || FALLBACK_IMAGE
+}
+
+// Helper to get all image URLs as array
+function getProductImages(images: HomepageProductImage[] | undefined, fallbackImage?: string | null): string[] {
+  // Try fallbackImage first (this is usually product.image from API which is JSON array string)
+  if (fallbackImage && typeof fallbackImage === 'string') {
+    // Check if it's a JSON array string
+    if (fallbackImage.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(fallbackImage)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((url: string) => url)
+        }
+      } catch {}
+    }
+    // It's a plain URL string, return as single item
+    if (fallbackImage.startsWith('http')) {
+      return [fallbackImage]
+    }
+  }
+
+  // Try images parameter
+  if (images && typeof images === 'string') {
+    try {
+      const parsed = JSON.parse(images)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.filter((url: string) => url)
+      }
+    } catch {}
+  }
+
+  // Handle array of objects with url property
+  if (images && images.length > 0 && typeof images[0] === 'object' && 'url' in images[0]) {
+    const urls = (images as { url: string }[]).map(img => img.url).filter(Boolean)
+    return urls.length > 0 ? urls : [FALLBACK_IMAGE]
+  }
+
+  return [FALLBACK_IMAGE]
 }
 
 // ==================== SECTION RENDERERS ====================
 
 // Announcement Bar
 function AnnouncementBarSection({ section }: { section: HomepageSection }) {
-  const announcements =
-    section.items?.filter((i) => i.itemType === "ANNOUNCEMENT") || [];
+  const title = section.title;
+  const ctaUrl = section.items?.[0]?.ctaUrl || "#";
+  const linkTarget = section.items?.[0]?.linkTarget === "BLANK" ? "_blank" : "_self";
 
-  if (announcements.length === 0) return null;
+  if (!title) return null;
 
   return (
     <div className="bg-black text-white text-center py-2 overflow-hidden">
       <div className="flex justify-center items-center gap-4">
-        {announcements.map((item) => (
-          <Link
-            key={item.id}
-            to={item.ctaUrl || "#"}
-            target={item.linkTarget === "BLANK" ? "_blank" : "_self"}
-            className="hover:underline text-sm"
-          >
-            {item.title}
-          </Link>
-          
-        ))}
+        <Link
+          to={ctaUrl}
+          target={linkTarget}
+          className="hover:underline text-sm"
+        >
+          {title}
+        </Link>
       </div>
     </div>
   );
@@ -127,7 +256,7 @@ function ProductRailSection({ section }: { section: HomepageSection }) {
   const title = section.title;
   const subtitle = section.subtitle;
 
-  const products = section.products?.map((sp) => sp.product) || [];
+  const products = section.products?.map((sp) => sp.product || sp) || [];
 
   return (
     <section className="py-8 md:py-12 border-t">
@@ -137,6 +266,12 @@ function ProductRailSection({ section }: { section: HomepageSection }) {
             align: "start",
             loop: true,
           }}
+          plugins={[
+            AutoPlay({
+              delay: 5000,
+              stopOnInteraction: false,
+            }),
+          ]}
           className="w-full"
         >
           <div className="flex items-center justify-between mb-12">
@@ -151,7 +286,7 @@ function ProductRailSection({ section }: { section: HomepageSection }) {
                 to="/products"
                 className="text-sm font-medium tracking-wide hover:text-gray-600 transition-colors"
               >
-                {lang === "en" ? "View collection" : "Xem thêm"}
+                {lang === "en" ? "View all products" : "Xem tất cả Product"}
               </Link>
               <div className="flex gap-2">
                 <CarouselPrevious className="static translate-y-0 left-0" />
@@ -160,40 +295,54 @@ function ProductRailSection({ section }: { section: HomepageSection }) {
             </div>
           </div>
           <CarouselContent className="-ml-4">
-            {products.map((product) => (
-              <CarouselItem
-                key={product.id}
-                className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4"
-              >
-                <Link
-                  to={`/products/${product.slug}`}
-                  className="product-card group block"
+            {products.filter(Boolean).map((product) => {
+              const productImages = getProductImages(product?.images, (product as any)?.image)
+              const showSubCarousel = productImages.length > 1
+
+              return (
+                <CarouselItem
+                  key={product.id}
+                  className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4"
                 >
-                  <div className="product-card__image aspect-[3/4]">
-                    <img
-                      src={getProductImageUrl(product.images)}
-                      alt={
-                        lang === "en" && product.nameEn
+                  <div className="product-card group block">
+                    {/* Image container with sub-carousel - separate from Link */}
+                    <div className="product-card__image aspect-[3/4] overflow-hidden relative">
+                      {showSubCarousel ? (
+                        <SubCarousel
+                          images={productImages}
+                          productSlug={product?.slug || ''}
+                          productName={lang === "en" && product?.nameEn ? product.nameEn : product?.name}
+                        />
+                      ) : (
+                        <Link to={`/products/${product?.slug}`} className="block w-full h-full">
+                          <img
+                            src={productImages[0]}
+                            alt={
+                              lang === "en" && product?.nameEn
+                                ? product.nameEn
+                                : product?.name
+                            }
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        </Link>
+                      )}
+                    </div>
+                    {/* Product info - also clickable to navigate */}
+                    <Link to={`/products/${product?.slug}`} className="product-card__info block">
+                      <h3 className="product-card__title group-hover:text-gray-600 transition-colors">
+                        {lang === "en" && product?.nameEn
                           ? product.nameEn
-                          : product.name
-                      }
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                          : product?.name}
+                      </h3>
+                      <p className="product-card__price">
+                        {Number(product?.price).toLocaleString("vi-VN")} ₫
+                      </p>
+                    </Link>
                   </div>
-                  <div className="product-card__info">
-                    <h3 className="product-card__title group-hover:text-gray-600 transition-colors">
-                      {lang === "en" && product.nameEn
-                        ? product.nameEn
-                        : product.name}
-                    </h3>
-                    <p className="product-card__price">
-                      {Number(product.price).toLocaleString("vi-VN")} ₫
-                    </p>
-                  </div>
-                </Link>
-              </CarouselItem>
-            ))}
+                </CarouselItem>
+              )
+            })}
           </CarouselContent>
         </Carousel>
       </div>
@@ -206,21 +355,22 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
   const { i18n } = useTranslation();
   const lang = i18n.language || "vi";
   const title = section.title;
-  const config = section.configJson as { collectionId?: string } | undefined;
-  const collectionId = config?.collectionId;
+  const config = section.configJson as { collectionIds?: string[]; collectionId?: string } | undefined;
+  const collectionIds = config?.collectionIds || (config?.collectionId ? [config.collectionId] : []);
 
-  const items = section.items?.filter((i) => i.itemType === "MEDIA_TILE") || [];
+  // API returns items with 'type' not 'itemType'
+  const items = section.items?.filter((i: any) => i.type === "MEDIA_TILE" || i.type === "COLLECTION") || [];
 
-  // If collectionId is set, show products from that collection instead of items
+  // If collectionIds is set, show products from those collections
   const [collectionProducts, setCollectionProducts] = useState<any[]>([]);
 
   useEffect(() => {
-    if (collectionId) {
-      productApi.getCollectionProducts(collectionId).then((res) => {
+    if (collectionIds.length > 0) {
+      collectionApi.getCollectionProducts(collectionIds[0]).then((res: any) => {
         setCollectionProducts(res.data || []);
       }).catch(() => setCollectionProducts([]));
     }
-  }, [collectionId]);
+  }, [collectionIds]);
 
   const displayProducts = collectionProducts.length > 0 ? collectionProducts : [];
 
@@ -228,7 +378,6 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
     <section className="py-8 md:py-12">
       <div className="container-custom">
         {displayProducts.length > 0 ? (
-          // Show products from collection
           <Carousel
             opts={{
               align: "start",
@@ -246,7 +395,7 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
                     to="/collections"
                     className="text-sm font-medium tracking-wide hover:text-gray-600 transition-colors"
                   >
-                    {lang === "en" ? "View all" : "Xem tất cả"}
+                    {lang === "en" ? "View Collection" : "Xem tất cả"}
                   </Link>
                   <div className="flex gap-2">
                     <CarouselPrevious className="static translate-y-0 left-0" />
@@ -287,83 +436,63 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
             <CarouselPrevious className="static translate-y-0 left-0" />
             <CarouselNext className="static translate-y-0 right-0" />
           </Carousel>
-        ) : (
-          // Fallback to items (original behavior)
-          items.length > 0 && (
-            <Carousel
-              opts={{
-                align: "start",
-                loop: true,
-              }}
-              className="w-full"
-            >
-              {title && (
-                <div className="flex items-center justify-between mb-12">
-                  <h2 className="text-2xl md:text-3xl font-display font-bold tracking-wide">
-                    {title}
-                  </h2>
-                  <div className="flex items-center gap-4">
-                    <Link
-                      to="/products"
-                      className="text-sm font-medium tracking-wide hover:text-gray-600 transition-colors"
-                    >
-                      {lang === "en" ? "View all" : "Xem tất cả"}
-                    </Link>
-                    <div className="flex gap-2">
-                      <CarouselPrevious className="static translate-y-0 left-0" />
-                      <CarouselNext className="static translate-y-0 right-0" />
-                    </div>
-                  </div>
+        ) : items.length > 0 ? (
+          <Carousel
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+            className="w-full"
+          >
+            {title && (
+              <div className="flex items-center justify-between mb-12">
+                <h2 className="text-2xl md:text-3xl font-display font-bold tracking-wide">
+                  {title}
+                </h2>
+                <div className="flex gap-2">
+                  <CarouselPrevious className="static translate-y-0 left-0" />
+                  <CarouselNext className="static translate-y-0 right-0" />
                 </div>
-              )}
-
-              <CarouselContent className="-ml-4">
-                {items.map((item) => {
-                  const itemConfig = item.metaJson as
-                    | { overlayStyle?: string }
-                    | undefined;
-                  return (
-                    <CarouselItem
-                      key={item.id}
-                      className="pl-4 basis-full md:basis-1/2 lg:basis-1/3"
-                    >
-                      <Link
-                        to={item.ctaUrl || "#"}
-                        target={item.linkTarget === "BLANK" ? "_blank" : "_self"}
-                        className="block group relative overflow-hidden aspect-[4/5]"
-                      >
-                        <img
-                          src={item.mediaUrl || "/images/products/placeholder.jpg"}
-                          alt={item.title}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
-                        <div
-                          className={`absolute inset-0 ${itemConfig?.overlayStyle === "light" ? "bg-white/20" : "bg-black/30"} flex flex-col justify-end p-6`}
-                        >
-                          {item.title && (
-                            <h3 className="text-white text-xl font-bold">
-                              {item.title}
-                            </h3>
-                          )}
-                          {item.subtitle && (
-                            <p className="text-white/80 text-sm">{item.subtitle}</p>
-                          )}
-                          {item.ctaLabel && (
-                            <span className="text-white text-sm mt-2 underline">
-                              {item.ctaLabel}
-                            </span>
-                          )}
-                        </div>
-                      </Link>
-                    </CarouselItem>
-                  );
-                })}
-              </CarouselContent>
-              <CarouselPrevious className="absolute -left-12 top-1/2 -translate-y-1/2" />
-              <CarouselNext className="absolute -right-12 top-1/2 -translate-y-1/2" />
-            </Carousel>
-          )
-        )}
+              </div>
+            )}
+            <CarouselContent className="-ml-4">
+              {items.map((item: any) => (
+                <CarouselItem
+                  key={item.id}
+                  className="pl-4 basis-full md:basis-1/2 lg:basis-1/3"
+                >
+                  <Link
+                    to={item.ctaUrl || "#"}
+                    target={item.linkTarget === "BLANK" ? "_blank" : "_self"}
+                    className="block group relative overflow-hidden aspect-[4/5]"
+                  >
+                    <img
+                      // API returns 'image' instead of 'mediaUrl'
+                      src={item.image || item.mediaUrl || "/images/products/placeholder.jpg"}
+                      alt={item.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/30 flex flex-col justify-end p-6">
+                      {item.title && (
+                        <h3 className="text-white text-xl font-bold">
+                          {item.title}
+                        </h3>
+                      )}
+                      {item.subtitle && (
+                        <p className="text-white/80 text-sm">{item.subtitle}</p>
+                      )}
+                      {item.cta && (
+                        <span className="text-white text-sm mt-2 underline">
+                          {item.cta}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        ) : null}
       </div>
     </section>
   );

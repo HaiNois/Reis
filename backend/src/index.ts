@@ -80,7 +80,7 @@ app.use('/api/v1/admin/orders', orderRoutes)
 app.use('/api/v1/admin/collections', collectionAdminRoutes)
 
 // Storefront routes
-app.use('/api/v1/storefront/homepage', homepageStorefrontRoutes)
+app.use('/api/v1/storefront', homepageStorefrontRoutes)
 app.use('/api/v1/admin/feedback', feedbackRoutes)
 
 // Upload routes

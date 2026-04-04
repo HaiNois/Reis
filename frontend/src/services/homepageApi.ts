@@ -7,7 +7,6 @@ export type HomepageSectionType =
   | 'HERO'
   | 'PRODUCT_RAIL'
   | 'MEDIA_TILES'
-  | 'NEW_SEASON_ARRIVALS'
 
 export type HomepageItemType = 'ANNOUNCEMENT' | 'MEDIA_TILE' | 'PRODUCT' | 'COLLECTION' | 'BANNER'
 
@@ -78,9 +77,12 @@ export interface SectionProduct {
 
 export interface ProductImage {
   id: string
-  url?: string
+  objectKey?: string
   publicUrl?: string
-  position: number
+  url?: string
+  sortOrder: number
+  isPrimary: boolean
+  altText?: string
 }
 
 export interface Feedback {
@@ -181,12 +183,12 @@ export const homepageSectionApi = {
 
   // Storefront
   getActiveHomepage: async () => {
-    const response = await api.get('/storefront/homepage/homepage')
+    const response = await api.get('/storefront/homepage')
     return response.data
   },
 
   getSectionBySlug: async (slug: string) => {
-    const response = await api.get(`/storefront/homepage/homepage/${slug}`)
+    const response = await api.get(`/storefront/homepage/${slug}`)
     return response.data
   },
 }

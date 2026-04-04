@@ -18,6 +18,7 @@ import CategoriesPage from './pages/admin/CategoriesPage'
 import OrdersPage from './pages/admin/OrdersPage'
 import BannersPage from './pages/admin/BannersPage'
 import HomepageSectionsPage from './pages/admin/HomepageSectionsPage'
+import SectionFormPage from './pages/admin/SectionFormPage'
 import FeedbackPage from './pages/admin/FeedbackPage'
 import CollectionsPage from './pages/admin/CollectionsPage'
 import { Toaster } from '@/components/ui/toaster'
@@ -54,6 +55,8 @@ function App() {
           <Route path="orders" element={<OrdersPage />} />
           <Route path="banners" element={<BannersPage />} />
           <Route path="homepage-sections" element={<HomepageSectionsPage />} />
+          <Route path="homepage-sections/new" element={<SectionFormPage />} />
+          <Route path="homepage-sections/:id/edit" element={<SectionFormPage />} />
           <Route path="feedback" element={<FeedbackPage />} />
         </Route>
       </Routes>

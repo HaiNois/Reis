@@ -116,6 +116,7 @@ model Collection {
 
   // Relations
   collectionProducts CollectionProduct[]
+  homepageSectionItems HomepageSectionItem[]
 
   @@index([slug])
   @@index([isActive])
@@ -403,10 +404,13 @@ model HomepageSectionItem {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   deletedAt         DateTime?
+  collectionId      String?
+  collection        Collection?        @relation(fields: [collectionId], references: [id])
 
   @@index([homepageSectionId])
   @@index([itemType])
   @@index([isActive, sortOrder])
+  @@index([collectionId])
 }
 
 model HomepageSectionProduct {
