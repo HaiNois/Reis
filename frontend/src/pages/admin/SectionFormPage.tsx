@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
-import { homepageSectionApi, HomepageSectionType } from '@/services/homepageApi'
+import { homepageSectionApi, HomepageSectionType, HomepageSectionProduct } from '@/services/homepageApi'
 import { productApi, Product, Collection, collectionApi } from '@/services/productApi'
 import { showToast, handleApiError } from '@/utils/toast'
 import { Spinner } from '@/components/ui/spinner'
@@ -82,20 +82,6 @@ export default function SectionFormPage() {
           const sectionRes = await homepageSectionApi.getSectionById(id)
           const section = sectionRes.data
 
-          // Parse configJson
-          let parsedConfig: Record<string, unknown> = {}
-          if (section.configJson) {
-            if (typeof section.configJson === 'string') {
-              try {
-                parsedConfig = JSON.parse(section.configJson)
-              } catch {
-                parsedConfig = {}
-              }
-            } else {
-              parsedConfig = section.configJson as Record<string, unknown>
-            }
-          }
-
           // Get first item if exists
           const firstItem = section.items?.[0] || null
           setEditingItem(firstItem)
@@ -114,18 +100,33 @@ export default function SectionFormPage() {
             }
           }
 
-          // Support both single (legacy) and array (new) formats
-          const productIds = Array.isArray(metaJson?.productIds)
-            ? metaJson.productIds as string[]
-            : metaJson?.productId
-              ? [metaJson.productId as string]
-              : []
+          // Parse configJson
+          let configJson: Record<string, unknown> = {}
+          if (section.configJson) {
+            if (typeof section.configJson === 'string') {
+              try {
+                configJson = JSON.parse(section.configJson as string)
+              } catch {
+                configJson = {}
+              }
+            } else {
+              configJson = section.configJson as Record<string, unknown>
+            }
+          }
 
-          const collectionIds = Array.isArray(metaJson?.collectionIds)
+          // Get productIds from section.products for PRODUCT_RAIL
+          const productIds = section.products?.map((p: HomepageSectionProduct) => p.productId) || []
+
+          // Get collectionIds from configJson or metaJson for MEDIA_TILES
+          const configCollectionIds = Array.isArray(configJson?.collectionIds)
+            ? configJson.collectionIds as string[]
+            : []
+          const metaCollectionIds = Array.isArray(metaJson?.collectionIds)
             ? metaJson.collectionIds as string[]
             : metaJson?.collectionId
               ? [metaJson.collectionId as string]
               : []
+          const collectionIds = configCollectionIds.length > 0 ? configCollectionIds : metaCollectionIds
 
           setFormData({
             sectionType: section.sectionType,
@@ -134,7 +135,7 @@ export default function SectionFormPage() {
             subtitle: section.subtitle || '',
             description: section.description || '',
             layout: section.layout || 'grid',
-            configJson: parsedConfig,
+            configJson: configJson,
             isActive: section.isActive,
             sortOrder: section.sortOrder,
             startsAt: section.startsAt ? section.startsAt.slice(0, 16) : '',

@@ -231,6 +231,24 @@ export class OrderService {
     }
   }
 
+  // Update payment status (called after PayPal capture)
+  async updatePaymentStatus(orderId: string, paymentStatus: 'PAID' | 'FAILED', paypalCaptureId?: string) {
+    const order = await prisma.order.findUnique({ where: { id: orderId } })
+
+    if (!order) {
+      throw new NotFoundError('Order')
+    }
+
+    return prisma.order.update({
+      where: { id: orderId },
+      data: {
+        paymentStatus,
+        paypalCaptureId: paypalCaptureId || null,
+      },
+      include: { items: true },
+    })
+  }
+
   // Admin: Get order stats
   async getOrderStats() {
     const [

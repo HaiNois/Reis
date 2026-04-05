@@ -34,6 +34,7 @@ enum PaymentStatus {
 enum PaymentMethod {
   COD
   BANK_TRANSFER
+  PAYPAL
 }
 
 enum ProductStatus {
@@ -266,6 +267,7 @@ model Order {
 
   notes           String?
   internalNote    String?
+  paypalCaptureId String?
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt

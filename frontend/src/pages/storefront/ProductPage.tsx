@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/stores/cartStore'
-import { productApi, getMainImageUrl, getThumbnailImages, getImageUrl, FALLBACK_IMAGE, ProductImage } from '@/services/productApi'
+import { productApi, getMainImageUrl, FALLBACK_IMAGE } from '@/services/productApi'
 import { showToast } from '@/utils/toast'
 import { Spinner } from '@/components/ui/spinner'
 import { ProductVariant } from '@/services/productApi'
@@ -21,6 +21,11 @@ export default function ProductPage() {
   const [mainImage, setMainImage] = useState(FALLBACK_IMAGE)
   const [loading, setLoading] = useState(true)
   const [product, setProduct] = useState<any>(null)
+
+  // Zoom state
+  const [isZooming, setIsZooming] = useState(false)
+  const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 })
+  const imageContainerRef = useRef<HTMLDivElement>(null)
 
   const addItem = useCartStore((state) => state.addItem)
   const lang = i18n.language
@@ -167,6 +172,17 @@ export default function ProductPage() {
     setMainImage(imageUrl)
   }
 
+  // Zoom handlers
+  const handleMouseEnter = () => setIsZooming(true)
+  const handleMouseLeave = () => setIsZooming(false)
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current) return
+    const rect = imageContainerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    setZoomPosition({ x, y })
+  }, [])
+
   const handleAddToCart = () => {
     if (!selectedColor) {
       showToast.warning(t('product.selectColor'))
@@ -215,12 +231,22 @@ export default function ProductPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
         {/* Image Gallery */}
         <div className="space-y-4">
-          {/* Main Image */}
-          <div className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
+          {/* Main Image with Zoom */}
+          <div
+            ref={imageContainerRef}
+            className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden cursor-zoom-in relative"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            onMouseMove={handleMouseMove}
+          >
             <img
               src={mainImage}
               alt={lang === 'en' && currentProduct.nameEn ? currentProduct.nameEn : currentProduct.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-200 ease-out"
+              style={{
+                transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                transform: isZooming ? 'scale(1.5)' : 'scale(1)',
+              }}
             />
           </div>
 
