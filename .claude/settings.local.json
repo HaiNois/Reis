@@ -1,7 +1,63 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(prisma:*)",
+      "Bash(npm:*)",
+      "Bash(node:*)",
+      "Bash(docker:*)",
+      "Bash(git:*)"
     ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "You are a skill router. Analyze the user's request and determine if a specialized skill should be activated.\n\nUser prompt: $ARGUMENTS\n\nAvailable skills:\n- frontend-react-vite: React components, Vite, Tailwind, shadcn/ui, pages\n- backend-node-express: API endpoints, Prisma models, Express middleware, Node.js\n- check-code-quality: Code analysis, bug detection, performance review\n- check-failed-files: SAP file sync status (FileData directories)\n- check-logs: Log4Net logs for Nois.SOAP/Nois.Api\n- check-tasks: Scheduled task status\n- ux-designer: UI/UX design, layout decisions\n\nIf a skill matches, respond with this exact format:\nUSE SKILL: skill-name\n\nIf no skill matches:\nNO SKILL NEEDED\n\nBe decisive - only route to skill if there's a clear match.",
+            "timeout": 20,
+            "statusMessage": "Routing to specialized skill..."
+          }
+        ]
+      }
+    ]
+  },
+  "agents": {
+    "frontend-developer": {
+      "path": ".claude/agents/frontend-developer.md",
+      "description": "Senior Frontend ReactJS Developer cho Reis project"
+    },
+    "backend-developer": {
+      "path": ".claude/agents/backend-developer.md",
+      "description": "Senior Backend Node.js Developer cho Reis project"
+    },
+    "ux-designer": {
+      "path": ".claude/agents/ux-designer.md",
+      "description": "Senior UX Designer cho Reis project"
+    }
+  },
+  "mcpServers": {
+    "enabled": true,
+    "configPath": ".claude/mcp-config.json"
+  },
+  "skills": {
+    "frontend-react-vite": {
+      "path": ".claude/skills/frontend-react-vite/SKILL.md",
+      "description": "Tạo component/page React nhanh cho Reis"
+    },
+    "backend-node-express": {
+      "path": ".claude/skills/backend-node-express/SKILL.md",
+      "description": "Tạo API/Prisma model nhanh cho Reis"
+    },
+    "check-code-quality": {
+      "path": ".claude/skills/check-code-quality/SKILL.md",
+      "description": "Phân tích code, tìm bugs và performance issues"
+    },
+    "skill-router": {
+      "path": ".claude/skills/skill-router/SKILL.md",
+      "description": "Tự động chọn skill phù hợp dựa trên request"
+    }
   }
 }

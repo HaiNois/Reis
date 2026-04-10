@@ -14,6 +14,7 @@ import { useConfirm } from '@/components/providers/confirm-provider'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Pencil, Trash2, Plus } from 'lucide-react'
+import { SIZE_ORDER } from '@/config/product'
 
 // Define columns for products table
 const productColumns = (
@@ -130,6 +131,14 @@ export default function ProductsPage() {
   const isFormValid = formData.name.trim().length > 0 &&
     formData.slug.trim().length > 0 &&
     formData.price > 0
+
+  // Extract unique colors and sizes from existing variants
+  const variantColors = [...new Set(editingProduct?.variants?.map(v => v.color).filter(Boolean) || [])].sort()
+  const variantSizes = [...new Set(editingProduct?.variants?.map(v => v.size).filter(Boolean) || [])].sort((a, b) => {
+    const indexA = SIZE_ORDER.indexOf(a.toUpperCase() as typeof SIZE_ORDER[number])
+    const indexB = SIZE_ORDER.indexOf(b.toUpperCase() as typeof SIZE_ORDER[number])
+    return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB)
+  })
 
   useEffect(() => {
     fetchProducts()
@@ -435,21 +444,37 @@ export default function ProductsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="color">Color</Label>
-                <Input
+                <select
                   id="color"
                   value={variantForm.color}
                   onChange={(e) => setVariantForm({ ...variantForm, color: e.target.value })}
-                  placeholder="e.g., Black, White"
-                />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="">Select Color</option>
+                  {variantColors.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                  {variantForm.color && !variantColors.includes(variantForm.color) && (
+                    <option value={variantForm.color}>{variantForm.color} (current)</option>
+                  )}
+                </select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="size">Size</Label>
-                <Input
+                <select
                   id="size"
                   value={variantForm.size}
                   onChange={(e) => setVariantForm({ ...variantForm, size: e.target.value })}
-                  placeholder="e.g., S, M, L, XL"
-                />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="">Select Size</option>
+                  {variantSizes.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                  {variantForm.size && !variantSizes.includes(variantForm.size) && (
+                    <option value={variantForm.size}>{variantForm.size} (current)</option>
+                  )}
+                </select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="variantPrice">Price</Label>

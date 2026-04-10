@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "prisma-db": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-prisma", "d:/Reis/backend/prisma/schema.prisma"],
+      "env": {
+        "DATABASE_URL": "postgresql://postgres:postgres123@localhost:5434/reis"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "d:/Reis"]
+    },
+    "api-tester": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-api-tester"]
+    },
+    "git": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-git", "--working-dir", "d:/Reis"]
+    }
+  }
+}
