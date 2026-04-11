@@ -20,7 +20,7 @@ declare global {
 export default function CheckoutPage() {
   const navigate = useNavigate()
   const { items, getTotal, clearCart } = useCartStore()
-  const [paymentMethod] = useState<'COD' | 'PAYPAL'>('COD')
+  const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID
   const [paypalReady, setPaypalReady] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -34,6 +34,7 @@ export default function CheckoutPage() {
     ward: '',
     phone: '',
     notes: '',
+    shippingProvince: 'Hồ Chí Minh',
   })
 
   // Vietnamese provinces/cities for dropdown
@@ -88,14 +89,13 @@ export default function CheckoutPage() {
 
   // Load PayPal SDK
   useEffect(() => {
-    const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID
-    if (!clientId) {
+    if (!paypalClientId) {
       console.warn('PayPal Client ID not configured')
       return
     }
 
     const script = document.createElement('script')
-    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`
+    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`
     script.async = true
     script.onload = () => setPaypalReady(true)
     document.body.appendChild(script)
@@ -105,21 +105,71 @@ export default function CheckoutPage() {
     }
   }, [])
 
-  const createOrder = async (
-    paymentMethodVal: string,
-    paymentStatus: string,
-    paypalCaptureId?: string
-  ) => {
+  const createOrder = async (paymentMethodVal: 'COD' | 'PAYPAL') => {
     setLoading(true)
     try {
       const orderData = {
         shippingFirstName: formData.firstName,
         shippingLastName: formData.lastName,
         shippingPhone: formData.phone,
-        shippingAddress: `${formData.address}, ${formData.ward ? formData.ward + ', ' : ''}${formData.district}, ${formData.city}`,
+        shippingAddress: `${formData.address}`,
+        shippingWard: formData.ward || '',
+        shippingDistrict: formData.district || '',
+        shippingProvince: formData.city,
         paymentMethod: paymentMethodVal,
-        paymentStatus,
-        paypalCaptureId,
+        notes: formData.notes,
+        items: items.map((item) => ({
+          variantId: item.variantId,
+          quantity: item.quantity,
+        })),
+      }
+
+      const response = await api.post('/orders', orderData)
+      const orderNumber = response.data.data.orderNumber
+
+      clearCart()
+
+      // For COD, redirect to success directly
+      if (paymentMethodVal === 'COD') {
+        sessionStorage.setItem('codOrderNumber', orderNumber)
+        navigate('/checkout/success')
+      }
+    } catch (error) {
+      console.error('Order creation error:', error)
+      alert('Failed to create order. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await createOrder('COD')
+  }
+
+  const handlePayPalClick = async () => {
+    if (!paypalReady || !window.paypal) {
+      alert('PayPal chưa sẵn sàng. Vui lòng thử lại sau.')
+      return
+    }
+
+    // Validate form before PayPal
+    if (!formData.firstName || !formData.lastName || !formData.address || !formData.phone) {
+      alert('Vui lòng điền đầy đủ thông tin giao hàng')
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      // Create order first (PENDING payment)
+      const orderData = {
+        shippingFirstName: formData.firstName,
+        shippingLastName: formData.lastName,
+        shippingPhone: formData.phone,
+        shippingAddress: `${formData.address}, ${formData.ward ? formData.ward + ', ' : ''}${formData.district}, ${formData.city}`,
+        paymentMethod: 'PAYPAL',
+        paymentStatus: 'PENDING',
         subtotal: getTotal(),
         shippingFee: 0,
         discount: 0,
@@ -135,44 +185,41 @@ export default function CheckoutPage() {
         })),
       }
 
-      await api.post('/orders', orderData)
-      clearCart()
-      navigate('/checkout/success')
-    } catch (error) {
-      console.error('Order creation error:', error)
-      alert('Failed to create order. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
+      const orderResponse = await api.post('/orders', orderData)
+      const localOrderId = orderResponse.data.data.id
+      const orderNumber = orderResponse.data.data.orderNumber
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (paymentMethod === 'PAYPAL') return
-    await createOrder('COD', 'PENDING')
-  }
+      // Store orderId for success page
+      sessionStorage.setItem('paypalOrderId', localOrderId)
+      sessionStorage.setItem('paypalOrderNumber', orderNumber)
 
-  const handlePayPalClick = async () => {
-    if (!paypalReady || !window.paypal) {
-      alert('PayPal chưa sẵn sàng. Vui lòng thử lại sau.')
-      return
-    }
-
-    try {
-      setLoading(true)
+      // Create PayPal order
       const totalVND = getTotal()
       const exchangeRate = 25000
       const totalUSD = (totalVND / exchangeRate).toFixed(2)
 
-      const response = await api.post('/payment/paypal/create-order', {
+      const paypalResponse = await api.post('/payment/paypal/create-order', {
         amount: parseFloat(totalUSD),
         currency: 'USD',
       })
 
-      if (response.data.success) {
-        const approvalUrl = response.data.data.approvalUrl
-        // Redirect to PayPal
-        window.location.href = approvalUrl
+      if (paypalResponse.data.success) {
+        const paypalOrderId = paypalResponse.data.data.orderId
+        const approvalUrl = paypalResponse.data.data.approvalUrl
+
+        // Store PayPal order ID
+        sessionStorage.setItem('paypalCheckoutOrderId', paypalOrderId)
+
+        // Append order info to return_url
+        const returnUrl = new URL(`${window.location.origin}/checkout/success`)
+        returnUrl.searchParams.set('token', paypalOrderId)
+        returnUrl.searchParams.set('orderId', localOrderId)
+        returnUrl.searchParams.set('orderNumber', orderNumber)
+
+        // Redirect to PayPal with proper return URL
+        const finalApprovalUrl = approvalUrl + (approvalUrl.includes('?') ? '&' : '?') + `return_url=${encodeURIComponent(returnUrl.toString())}`
+
+        window.location.href = finalApprovalUrl
       } else {
         throw new Error('Failed to create PayPal order')
       }

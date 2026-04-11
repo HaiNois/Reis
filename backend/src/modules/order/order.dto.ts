@@ -6,7 +6,7 @@ export const createOrderSchema = z.object({
     quantity: z.number().int().positive('Quantity must be positive'),
   })).min(1, 'At least one item is required'),
 
-  paymentMethod: z.enum(['COD', 'BANK_TRANSFER']).default('COD'),
+  paymentMethod: z.enum(['COD', 'BANK_TRANSFER', 'PAYPAL']).default('COD'),
 
   shippingFirstName: z.string().min(1, 'First name is required'),
   shippingLastName: z.string().min(1, 'Last name is required'),

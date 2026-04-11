@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { paypalService } from '../../shared/services/paypal.service.js'
+import { orderService } from '../order/order.service.js'
 import { asyncHandler } from '../../shared/utils/error-handler.js'
 
 const router = Router()
@@ -28,7 +29,7 @@ router.post('/payment/paypal/create-order', asyncHandler(async (req, res) => {
 }))
 
 router.post('/payment/paypal/capture-order', asyncHandler(async (req, res) => {
-  const { orderId } = req.body
+  const { orderId, localOrderId } = req.body
 
   if (!orderId) {
     res.status(400).json({
@@ -39,6 +40,11 @@ router.post('/payment/paypal/capture-order', asyncHandler(async (req, res) => {
   }
 
   const capture = await paypalService.captureOrder(orderId)
+
+  // Update order payment status if localOrderId provided
+  if (localOrderId) {
+    await orderService.updatePaymentStatus(localOrderId, 'PAID', capture.id)
+  }
 
   res.json({
     success: true,

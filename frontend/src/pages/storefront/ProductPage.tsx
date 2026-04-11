@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/stores/cartStore'
@@ -44,6 +44,11 @@ export default function ProductPage() {
     images: ProductImage[]
     variants: ProductVariant[]
   } | null>(null)
+
+  // Zoom state
+  const [isZooming, setIsZooming] = useState(false)
+  const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 })
+  const imageContainerRef = useRef<HTMLDivElement>(null)
 
   const addItem = useCartStore((state) => state.addItem)
   const lang = i18n.language
@@ -184,7 +189,16 @@ export default function ProductPage() {
     setMainImage(imageUrl)
   }
 
-  // ==================== CART HANDLER ====================
+  // Zoom handlers
+  const handleMouseEnter = () => setIsZooming(true)
+  const handleMouseLeave = () => setIsZooming(false)
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current) return
+    const rect = imageContainerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    setZoomPosition({ x, y })
+  }, [])
 
   const handleAddToCart = () => {
     if (!selectedColor) {
@@ -251,12 +265,22 @@ export default function ProductPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
         {/* Image Gallery */}
         <div className="space-y-4">
-          {/* Main Image */}
-          <div className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
+          {/* Main Image with Zoom */}
+          <div
+            ref={imageContainerRef}
+            className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden cursor-zoom-in relative"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            onMouseMove={handleMouseMove}
+          >
             <img
               src={mainImage}
               alt={lang === 'en' && currentProduct.nameEn ? currentProduct.nameEn : currentProduct.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-200 ease-out"
+              style={{
+                transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                transform: isZooming ? 'scale(1.5)' : 'scale(1)',
+              }}
             />
           </div>
 
