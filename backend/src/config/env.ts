@@ -41,6 +41,7 @@ export const envSchema = z.object({
   PAYPAL_MODE: z.enum(['sandbox', 'live']).default('sandbox'),
   PAYPAL_CLIENT_ID: z.string().default(''),
   PAYPAL_CLIENT_SECRET: z.string().default(''),
+  PAYPAL_WEBHOOK_ID: z.string().default(''),
 })
 
 export type Env = z.infer<typeof envSchema>

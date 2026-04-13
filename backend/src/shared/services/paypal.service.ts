@@ -58,7 +58,7 @@ export class PayPalService {
     return response.data.access_token
   }
 
-  async createOrder(amount: number, currency: string = 'USD'): Promise<PayPalOrderResponse> {
+  async createOrder(amount: number, currency: string = 'USD', customId?: string): Promise<PayPalOrderResponse> {
     const accessToken = await this.getAccessToken()
 
     const response = await axios.post<PayPalOrderResponse>(
@@ -71,6 +71,7 @@ export class PayPalService {
               currency_code: currency,
               value: amount.toFixed(2),
             },
+            custom_id: customId,
           },
         ],
       },
@@ -116,6 +117,42 @@ export class PayPalService {
     )
 
     return response.data
+  }
+
+  async verifyWebhook(body: any, headers: Record<string, string>): Promise<boolean> {
+    const accessToken = await this.getAccessToken()
+    const webhookId = env.PAYPAL_WEBHOOK_ID
+
+    if (!webhookId) {
+      console.warn('PAYPAL_WEBHOOK_ID not configured, skipping webhook verification')
+      return true
+    }
+
+    try {
+      const response = await axios.post(
+        `${PAYPAL_API_URL}/v1/notifications/verify-webhook-signature`,
+        {
+          auth_algo: headers['paypal-auth-algo'],
+          cert_url: headers['paypal-cert-url'],
+          webhook_id: webhookId,
+          webhook_event: body,
+          transmission_id: headers['paypal-transmission-id'],
+          transmission_sig: headers['paypal-transmission-sig'],
+          transmission_time: headers['paypal-transmission-time'],
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      return response.data.verification_status === 'SUCCESS'
+    } catch (error: any) {
+      console.error('PayPal webhook verification failed:', error?.response?.data || error.message)
+      return false
+    }
   }
 }
 

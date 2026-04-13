@@ -214,6 +214,7 @@ export default function CheckoutPage() {
       const paypalResponse = await api.post('/payment/paypal/create-order', {
         amount: parseFloat(totalUSD),
         currency: 'USD',
+        localOrderId: localOrderId,
       })
 
       if (paypalResponse.data.success) {

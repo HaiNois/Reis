@@ -9,7 +9,7 @@ const router = Router()
 
 // Create PayPal order for checkout
 router.post('/payment/paypal/create-order', asyncHandler(async (req, res) => {
-  const { amount, currency = 'USD' } = req.body
+  const { amount, currency = 'USD', localOrderId } = req.body
 
   if (!amount || amount <= 0) {
     res.status(400).json({
@@ -20,7 +20,7 @@ router.post('/payment/paypal/create-order', asyncHandler(async (req, res) => {
   }
 
   try {
-    const order = await paypalService.createOrder(amount, currency)
+    const order = await paypalService.createOrder(amount, currency, localOrderId)
     const approvalUrl = order.links.find((link: any) => link.rel === 'approve')?.href
 
     res.json({
@@ -99,6 +99,15 @@ router.get('/payment/paypal/order/:orderId', asyncHandler(async (req, res) => {
 
 // PayPal Webhook handler (for async notifications)
 router.post('/payment/paypal/webhook', asyncHandler(async (req, res) => {
+  // Verify webhook signature first
+  const isValid = await paypalService.verifyWebhook(req.body, req.headers)
+
+  if (!isValid) {
+    console.error('PayPal webhook signature verification failed')
+    res.status(403).json({ success: false, error: { code: 'INVALID_SIGNATURE', message: 'Invalid webhook signature' } })
+    return
+  }
+
   const webhookEvent = req.body
 
   console.log('PayPal webhook received:', webhookEvent.event_type)
