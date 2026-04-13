@@ -5,7 +5,7 @@ import { authenticate, requireAdmin } from '../../shared/middlewares/auth.js'
 const router = Router()
 
 // Products CRUD - mounted at /api/v1/admin/products
-router.get('/', authenticate, requireAdmin, productController.getProducts)
+router.get('/', authenticate, requireAdmin, productController.getProductsAdmin)
 router.post('/', authenticate, requireAdmin, productController.createProduct)
 router.get('/:id', authenticate, requireAdmin, productController.getProductById)
 router.patch('/:id', authenticate, requireAdmin, productController.updateProduct)

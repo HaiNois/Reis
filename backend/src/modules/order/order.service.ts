@@ -65,9 +65,8 @@ export class OrderService {
         shippingLastName: input.shippingLastName,
         shippingPhone: input.shippingPhone,
         shippingAddress: input.shippingAddress,
-        shippingWard: input.shippingWard,
-        shippingDistrict: input.shippingDistrict,
-        shippingProvince: input.shippingProvince,
+        shippingCity: input.shippingCity,
+        shippingCountry: input.shippingCountry,
         notes: input.notes,
         items: {
           create: orderItems,

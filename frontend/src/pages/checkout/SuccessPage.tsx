@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/stores/cartStore'
 import api from '@/services/api'
 
 export default function SuccessPage() {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const { clearCart } = useCartStore()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -68,8 +70,8 @@ export default function SuccessPage() {
     return (
       <div className="container-custom py-16 text-center">
         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-        <h1 className="text-2xl font-serif font-bold mb-4">Đang xử lý thanh toán...</h1>
-        <p className="text-muted-foreground">Vui lòng đợi trong giây lát</p>
+        <h1 className="text-2xl font-serif font-bold mb-4">{t('success.processingTitle')}</h1>
+        <p className="text-muted-foreground">{t('success.processingMessage')}</p>
       </div>
     )
   }
@@ -82,16 +84,16 @@ export default function SuccessPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h1 className="text-2xl font-serif font-bold mb-4">Thanh toán thất bại</h1>
+        <h1 className="text-2xl font-serif font-bold mb-4">{t('success.paymentFailedTitle')}</h1>
         <p className="text-muted-foreground mb-8">
-          Đã xảy ra lỗi khi xử lý thanh toán PayPal. Vui lòng thử lại hoặc liên hệ hỗ trợ.
+          {t('success.paymentFailedMessage')}
         </p>
         <div className="flex justify-center gap-4">
           <Link to="/cart" className="btn btn-primary">
-            Quay lại giỏ hàng
+            {t('common.backToCart')}
           </Link>
           <Link to="/" className="btn btn-outline">
-            Về trang chủ
+            {t('common.backToHome')}
           </Link>
         </div>
       </div>
@@ -105,19 +107,19 @@ export default function SuccessPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       </div>
-      <h1 className="text-3xl font-serif font-bold mb-4">Đặt hàng thành công!</h1>
+      <h1 className="text-3xl font-serif font-bold mb-4">{t('success.title')}</h1>
       <p className="text-primary-600 mb-4">
-        Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ liên hệ để xác nhận đơn hàng trong thời gian sớm nhất.
+        {t('success.message')}
       </p>
       {orderNumber && (
-        <p className="text-lg font-medium mb-8">Mã đơn hàng: <span className="text-primary">{orderNumber}</span></p>
+        <p className="text-lg font-medium mb-8">{t('success.orderNumber')}: <span className="text-primary">{orderNumber}</span></p>
       )}
       <div className="flex justify-center gap-4">
         <Link to="/products" className="btn btn-primary">
-          Tiếp tục mua sắm
+          {t('success.continueShopping')}
         </Link>
         <Link to="/account/orders" className="btn btn-outline">
-          Xem đơn hàng
+          {t('success.viewOrder')}
         </Link>
       </div>
     </div>

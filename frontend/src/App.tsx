@@ -17,6 +17,7 @@ import OrderDetailPage from './pages/account/OrderDetailPage'
 import OrderTrackingPage from './pages/storefront/OrderTrackingPage'
 import DashboardPage from './pages/admin/DashboardPage'
 import ProductsPage from './pages/admin/ProductsPage'
+import ProductDetailPage from './pages/admin/ProductDetailPage'
 import CategoriesPage from './pages/admin/CategoriesPage'
 import OrdersPage from './pages/admin/OrdersPage'
 import BannersPage from './pages/admin/BannersPage'
@@ -56,6 +57,7 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="products/:id" element={<ProductDetailPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="collections" element={<CollectionsPage />} />
           <Route path="orders" element={<OrdersPage />} />

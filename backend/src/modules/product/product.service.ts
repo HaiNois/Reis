@@ -12,6 +12,125 @@ import type {
 } from './product.dto.js'
 
 export class ProductService {
+  async getProductsAdmin(filters: ProductFilters) {
+    const { category, minPrice, maxPrice, status, isFeatured, isNewArrival, search, sort, page, limit } = filters
+
+    const where: any = {
+      isDelete: false,
+    }
+
+    if (category) {
+      where.category = { slug: category }
+    }
+
+    if (minPrice || maxPrice) {
+      where.price = {}
+      if (minPrice) where.price.gte = minPrice
+      if (maxPrice) where.price.lte = maxPrice
+    }
+
+    if (status) {
+      where.status = status
+    }
+
+    if (isFeatured !== undefined) {
+      where.isFeatured = isFeatured
+    }
+
+    if (isNewArrival !== undefined) {
+      where.isNewArrival = isNewArrival
+    }
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { nameEn: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    // Sort mapping
+    const orderBy: any = {}
+    switch (sort) {
+      case 'price-asc':
+        orderBy.price = 'asc'
+        break
+      case 'price-desc':
+        orderBy.price = 'desc'
+        break
+      case 'popular':
+        orderBy.orderItems = { _count: 'desc' }
+        break
+      default:
+        orderBy.createdAt = 'desc'
+    }
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: {
+          category: { select: { id: true, name: true, nameEn: true, slug: true } },
+          images: { orderBy: { position: 'asc' } },
+          variants: { where: { isActive: true } },
+        },
+        orderBy,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.product.count({ where }),
+    ])
+
+    // Transform response - include full variants for admin but remove null fields
+    const transformedProducts = products.map((product) => {
+      // Parse image JSON string into images array
+      let images: string[] = []
+      if (product.image) {
+        try {
+          images = JSON.parse(product.image)
+        } catch {
+          images = product.image ? [product.image] : []
+        }
+      }
+
+      // Only include variants with required fields
+      const variants = product.variants.map((v) => ({
+        id: v.id,
+        sku: v.sku,
+        size: v.size,
+        color: v.color,
+        price: v.price,
+        salePrice: v.salePrice,
+        quantity: v.quantity,
+        isActive: v.isActive,
+      }))
+
+      return {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        price: product.price,
+        status: product.status,
+        isFeatured: product.isFeatured,
+        isNewArrival: product.isNewArrival,
+        category: product.category,
+        images,
+        variants,
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt,
+      }
+    })
+
+    return {
+      data: transformedProducts,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    }
+  }
+
   async getProducts(filters: ProductFilters) {
     const { category, minPrice, maxPrice, status, isFeatured, isNewArrival, search, sort, page, limit } = filters
 
@@ -69,7 +188,7 @@ export class ProductService {
       prisma.product.findMany({
         where,
         include: {
-          category: true,
+          category: { select: { id: true, name: true, nameEn: true, slug: true } },
           images: { orderBy: { position: 'asc' } },
           variants: { where: { isActive: true } },
         },
@@ -80,8 +199,47 @@ export class ProductService {
       prisma.product.count({ where }),
     ])
 
+    // Transform response for optimized payload
+    const transformedProducts = products.map((product) => {
+      // Parse image JSON string into images array
+      let images: string[] = []
+      if (product.image) {
+        try {
+          images = JSON.parse(product.image)
+        } catch {
+          images = product.image ? [product.image] : []
+        }
+      }
+
+      // Get variant summary
+      const variantSummary = product.variants.length > 0
+        ? {
+            count: product.variants.length,
+            minPrice: Math.min(...product.variants.map((v) => Number(v.price))),
+            maxPrice: Math.max(...product.variants.map((v) => Number(v.price))),
+            totalStock: product.variants.reduce((sum, v) => sum + v.quantity, 0),
+            hasSale: product.variants.some((v) => v.salePrice !== null),
+          }
+        : null
+
+      return {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        price: product.price,
+        status: product.status,
+        isFeatured: product.isFeatured,
+        isNewArrival: product.isNewArrival,
+        category: product.category,
+        images,
+        variantSummary,
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt,
+      }
+    })
+
     return {
-      data: products,
+      data: transformedProducts,
       meta: {
         page,
         limit,

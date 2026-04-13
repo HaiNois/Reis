@@ -261,9 +261,8 @@ model Order {
   shippingLastName  String
   shippingPhone    String
   shippingAddress  String
-  shippingWard     String
-  shippingDistrict String
-  shippingProvince String
+  shippingCity     String
+  shippingCountry  String
 
   notes           String?
   internalNote    String?

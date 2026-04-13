@@ -1,16 +1,14 @@
 import { useState } from 'react'
 import { ALL_SIZES, SIZE_ORDER } from '@/config/product'
-import { Label } from './label'
 import { ChevronDown, Check } from 'lucide-react'
 
 interface SizePickerProps {
   value: string
   onChange: (size: string) => void
-  label?: string
   allowCustom?: boolean
 }
 
-export function SizePicker({ value, onChange, label = 'Size', allowCustom = false }: SizePickerProps) {
+export function SizePicker({ value, onChange, allowCustom = false }: SizePickerProps) {
   const [open, setOpen] = useState(false)
 
   const sortedSizes = [...ALL_SIZES].sort((a, b) => {
@@ -29,7 +27,6 @@ export function SizePicker({ value, onChange, label = 'Size', allowCustom = fals
 
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
       <div className="relative">
         <button
           type="button"

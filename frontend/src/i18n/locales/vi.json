@@ -11,7 +11,12 @@
     "viewAll": "Xem tất cả",
     "viewMore": "Xem thêm",
     "home": "Trang chủ",
-    "free": "Miễn phí"
+    "products": "Sản phẩm",
+    "free": "Miễn phí",
+    "processing": "Đang xử lý...",
+    "continueShopping": "Tiếp tục mua sắm",
+    "backToCart": "Quay lại giỏ hàng",
+    "backToHome": "Về trang chủ"
   },
   "header": {
     "home": "Trang chủ",
@@ -23,7 +28,9 @@
     "account": "Tài khoản",
     "login": "Đăng nhập",
     "register": "Đăng ký",
-    "logout": "Đăng xuất"
+    "logout": "Đăng xuất",
+    "menu": "Menu",
+    "search": "Tìm kiếm"
   },
   "footer": {
     "brand": "Rei.s",
@@ -78,7 +85,12 @@
     "title": "Đặt hàng thành công!",
     "message": "Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.",
     "continueShopping": "Tiếp tục mua sắm",
-    "viewOrder": "Xem đơn hàng"
+    "viewOrder": "Xem đơn hàng",
+    "processingTitle": "Đang xử lý thanh toán...",
+    "processingMessage": "Vui lòng đợi trong giây lát",
+    "paymentFailedTitle": "Thanh toán thất bại",
+    "paymentFailedMessage": "Đã xảy ra lỗi khi xử lý thanh toán PayPal. Vui lòng thử lại hoặc liên hệ hỗ trợ.",
+    "orderNumber": "Mã đơn hàng"
   },
   "product": {
     "addToCart": "Thêm vào giỏ",
@@ -97,7 +109,8 @@
     "sizeGuide": "Hướng dẫn chọn size",
     "selectSizeFirst": "Chọn size",
     "selectColorFirst": "Chọn màu",
-    "sale": "Sale"
+    "sale": "Sale",
+    "addedToCart": "Đã thêm vào giỏ"
   },
   "cart": {
     "title": "Giỏ hàng",
@@ -118,15 +131,26 @@
     "paymentMethod": "Phương thức thanh toán",
     "orderSummary": "Tóm tắt đơn hàng",
     "placeOrder": "Đặt hàng",
-    "cod": "Thanh toán khi nhận hàng",
+    "cod": "Thanh toán khi nhận hàng (COD)",
     "fullName": "Họ và tên",
+    "firstName": "Họ",
+    "lastName": "Tên",
     "email": "Email",
     "phone": "Số điện thoại",
     "address": "Địa chỉ",
+    "addressPlaceholder": "Địa chỉ, căn hộ, suite, đơn vị, tòa nhà, tầng...",
     "city": "Thành phố",
-    "district": "Quận/Huyện",
-    "ward": "Phường/Xã",
-    "notes": "Ghi chú (tùy chọn)"
+    "country": "Quốc gia",
+    "notes": "Ghi chú (tùy chọn)",
+    "payment": "Thanh toán",
+    "shippingMethod": "Phương thức vận chuyển",
+    "standardDelivery": "Vận chuyển tiêu chuẩn",
+    "deliveryTime": "Giao hàng trong 3-5 ngày",
+    "internationalNotice": "Đơn hàng quốc tế yêu cầu thanh toán qua PayPal",
+    "paypalNotReady": "PayPal chưa sẵn sàng. Vui lòng thử lại sau.",
+    "fillAllFields": "Vui lòng điền đầy đủ thông tin giao hàng",
+    "orderFailed": "Tạo đơn hàng thất bại. Vui lòng thử lại.",
+    "paypalInitFailed": "Đã xảy ra lỗi khi khởi tạo PayPal. Vui lòng thử lại."
   },
   "order": {
     "status": {
@@ -272,6 +296,20 @@
     "variantClear": "Xóa form",
     "variantSaved": "Đã lưu biến thể",
     "variantDeleted": "Đã xóa biến thể",
-    "searchPlaceholder": "Tìm kiếm sản phẩm..."
+    "searchPlaceholder": "Tìm kiếm sản phẩm...",
+    "productAllStatus": "Tất cả trạng thái",
+    "productAllCategories": "Tất cả danh mục",
+    "backToProducts": "Quay lại sản phẩm",
+    "basicInfo": "Thông tin cơ bản",
+    "variants": "Biến thể",
+    "addImages": "Thêm hình ảnh",
+    "bulkDelete": "Xóa sản phẩm",
+    "bulkDeleteConfirm": "Bạn có chắc muốn xóa {count} sản phẩm?",
+    "bulkDeleted": "Đã xóa {count} sản phẩm",
+    "bulkStatusChanged": "Đã cập nhật {count} sản phẩm",
+    "changeStatus": "Đổi trạng thái",
+    "applyStatus": "Áp dụng",
+    "clear": "Hủy",
+    "productsSelected": "sản phẩm đã chọn"
   }
 }

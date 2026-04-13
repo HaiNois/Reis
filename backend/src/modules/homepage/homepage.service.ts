@@ -416,26 +416,37 @@ export class HomepageService {
       layout: section.layout,
       title: section.title,
       subtitle: section.subtitle,
-      items: section.items.map((item) => ({
-        id: item.id,
-        type: item.itemType,
-        title: item.collection?.name || item.title,
-        subtitle: item.collection?.description || item.subtitle,
-        image: item.collection?.image || item.mediaUrl,
-        mobileImage: item.mobileMediaUrl,
-        mediaType: item.mediaType,
-        cta: item.ctaLabel,
-        ctaUrl: item.collection?.slug ? `/collections/${item.collection.slug}` : item.ctaUrl,
-        collection: item.collection ? {
-          id: item.collection.id,
-          name: item.collection.name,
-          nameEn: item.collection.nameEn,
-          slug: item.collection.slug,
-          description: item.collection.description,
-          image: item.collection.image,
-          isActive: item.collection.isActive,
-        } : undefined,
-      })),
+      items: section.items.map((item) => {
+        // COLLECTION type: use collection directly, avoid duplicate fields
+        if (item.itemType === 'COLLECTION' && item.collection) {
+          return {
+            id: item.id,
+            type: item.itemType,
+            collection: {
+              id: item.collection.id,
+              name: item.collection.name,
+              nameEn: item.collection.nameEn,
+              slug: item.collection.slug,
+              description: item.collection.description,
+              image: item.collection.image,
+              isActive: item.collection.isActive,
+            },
+          }
+        }
+
+        // Other types (BANNER, MEDIA_TILE, PRODUCT): include all fields
+        return {
+          id: item.id,
+          type: item.itemType,
+          title: item.title,
+          subtitle: item.subtitle,
+          image: item.mediaUrl,
+          mobileImage: item.mobileMediaUrl,
+          mediaType: item.mediaType,
+          cta: item.ctaLabel,
+          ctaUrl: item.ctaUrl,
+        }
+      }),
       products: section.products.map((sp) => ({
         id: sp.product.id,
         name: sp.product.name,
@@ -484,26 +495,37 @@ export class HomepageService {
       layout: section.layout,
       title: section.title,
       subtitle: section.subtitle,
-      items: section.items.map((item) => ({
-        id: item.id,
-        type: item.itemType,
-        title: item.collection?.name || item.title,
-        subtitle: item.collection?.description || item.subtitle,
-        image: item.collection?.image || item.mediaUrl,
-        mobileImage: item.mobileMediaUrl,
-        mediaType: item.mediaType,
-        cta: item.ctaLabel,
-        ctaUrl: item.collection?.slug ? `/collections/${item.collection.slug}` : item.ctaUrl,
-        collection: item.collection ? {
-          id: item.collection.id,
-          name: item.collection.name,
-          nameEn: item.collection.nameEn,
-          slug: item.collection.slug,
-          description: item.collection.description,
-          image: item.collection.image,
-          isActive: item.collection.isActive,
-        } : undefined,
-      })),
+      items: section.items.map((item) => {
+        // COLLECTION type: use collection directly, avoid duplicate fields
+        if (item.itemType === 'COLLECTION' && item.collection) {
+          return {
+            id: item.id,
+            type: item.itemType,
+            collection: {
+              id: item.collection.id,
+              name: item.collection.name,
+              nameEn: item.collection.nameEn,
+              slug: item.collection.slug,
+              description: item.collection.description,
+              image: item.collection.image,
+              isActive: item.collection.isActive,
+            },
+          }
+        }
+
+        // Other types (BANNER, MEDIA_TILE, PRODUCT): include all fields
+        return {
+          id: item.id,
+          type: item.itemType,
+          title: item.title,
+          subtitle: item.subtitle,
+          image: item.mediaUrl,
+          mobileImage: item.mobileMediaUrl,
+          mediaType: item.mediaType,
+          cta: item.ctaLabel,
+          ctaUrl: item.ctaUrl,
+        }
+      }),
       products: section.products.map((sp) => ({
         id: sp.product.id,
         name: sp.product.name,

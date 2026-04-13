@@ -156,7 +156,6 @@ export default function SectionFormPage() {
     slug: '',
     title: '',
     subtitle: '',
-    description: '',
     layout: 'grid' as string,
     configJson: {} as Record<string, unknown>,
     isActive: true,
@@ -184,17 +183,16 @@ export default function SectionFormPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [collectionsRes, productsRes] = await Promise.all([
+        const [collections, products] = await Promise.all([
           collectionApi.getAllCollections(),
           productApi.getProducts({ limit: 100 }),
         ])
-        setAvailableCollections(collectionsRes.data || [])
-        setAvailableProducts(productsRes.data || [])
+        setAvailableCollections(collections || [])
+        setAvailableProducts(products || [])
 
         // Fetch section data if editing
         if (id) {
-          const sectionRes = await homepageSectionApi.getSectionById(id)
-          const section = sectionRes.data
+          const section = await homepageSectionApi.getSectionById(id)
 
           // Get first item if exists
           const firstItem = section.items?.[0] || null
@@ -247,7 +245,6 @@ export default function SectionFormPage() {
             slug: section.slug || '',
             title: section.title || '',
             subtitle: section.subtitle || '',
-            description: section.description || '',
             layout: section.layout || 'grid',
             configJson: configJson,
             isActive: section.isActive,
@@ -329,7 +326,6 @@ export default function SectionFormPage() {
         slug: formData.slug,
         title: formData.title,
         subtitle: formData.subtitle || undefined,
-        description: formData.description || undefined,
         layout: formData.layout,
         configJson: formData.configJson,
         isActive: formData.isActive,
@@ -376,9 +372,9 @@ export default function SectionFormPage() {
         } else if (sectionId) {
           // Check if section has existing items
           const existingSection = await homepageSectionApi.getSectionById(sectionId)
-          if (existingSection.data.items?.[0]) {
+          if (existingSection.items?.[0]) {
             // Update existing item
-            await homepageSectionApi.updateItem(sectionId, existingSection.data.items[0].id, itemData)
+            await homepageSectionApi.updateItem(sectionId, existingSection.items[0].id, itemData)
           } else {
             // Create new item
             await homepageSectionApi.createItem(sectionId, itemData)
@@ -390,7 +386,7 @@ export default function SectionFormPage() {
       if (sectionId && formData.sectionType === 'PRODUCT_RAIL') {
         // Get existing products in section
         const existingSection = await homepageSectionApi.getSectionById(sectionId)
-        const existingProductIds = existingSection.data.products?.map((p: any) => p.productId) || []
+        const existingProductIds = existingSection.products?.map((p: any) => p.productId) || []
 
         // Remove products that are no longer selected
         for (const existingId of existingProductIds) {
@@ -615,23 +611,10 @@ export default function SectionFormPage() {
               />
             </div>
 
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description">{t('admin.description')}</Label>
-              <textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => updateFormData(prev => ({ ...prev, description: e.target.value }))}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder={lang === 'vi' ? 'Mô tả ngắn (tùy chọn)' : 'Short description (optional)'}
-              />
-            </div>
-
-            {/* Layout */}
+            {/* Layout - moved here and combined with info */}
             {['PRODUCT_RAIL', 'MEDIA_TILES'].includes(formData.sectionType) && (
               <div className="space-y-2">
-                <Label>Layout</Label>
+                <Label>{lang === 'vi' ? 'Kiểu hiển thị' : 'Display Layout'}</Label>
                 <Select
                   value={formData.layout}
                   onValueChange={(value) => updateFormData(prev => ({ ...prev, layout: value }))}

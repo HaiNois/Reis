@@ -143,6 +143,17 @@ export class ProductController {
 
   // ==================== ADMIN PRODUCTS ====================
 
+  getProductsAdmin = asyncHandler(async (req, res) => {
+    const filters = productFiltersSchema.parse(req.query)
+    const result = await productService.getProductsAdmin(filters)
+
+    res.json({
+      success: true,
+      data: result.data,
+      meta: result.meta,
+    })
+  })
+
   getProductById = asyncHandler(async (req, res) => {
     const { id } = req.params
     const product = await productService.getProductById(id)

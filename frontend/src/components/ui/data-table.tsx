@@ -8,7 +8,7 @@ import {
   ColumnFiltersState,
   PaginationState,
 } from "@tanstack/react-table"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,8 +20,10 @@ interface DataTableProps<TData, TValue> {
   pageSize?: number
   enableSearch?: boolean
   searchPlaceholder?: string
+  enableRowSelection?: boolean
   onRowClick?: (row: TData) => void
   onRowDoubleClick?: (row: TData) => void
+  onSelectionChange?: (selectedRows: TData[]) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -30,8 +32,10 @@ export function DataTable<TData, TValue>({
   pageSize = 10,
   enableSearch = false,
   searchPlaceholder = "Search...",
+  enableRowSelection = false,
   onRowClick,
   onRowDoubleClick,
+  onSelectionChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -40,12 +44,15 @@ export function DataTable<TData, TValue>({
     pageIndex: 0,
     pageSize: pageSize,
   })
+  const [rowSelection, setRowSelection] = useState({})
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: enableSearch ? getFilteredRowModel() : undefined,
+    enableRowSelection: enableRowSelection,
+    onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
@@ -55,8 +62,17 @@ export function DataTable<TData, TValue>({
       columnFilters,
       globalFilter,
       pagination,
+      rowSelection,
     },
   })
+
+  // Notify parent of selection changes
+  useEffect(() => {
+    if (onSelectionChange && enableRowSelection) {
+      const selectedRows = table.getSelectedRowModel().rows.map(row => row.original)
+      onSelectionChange(selectedRows)
+    }
+  }, [rowSelection, table, onSelectionChange, enableRowSelection])
 
   return (
     <div className="space-y-4">

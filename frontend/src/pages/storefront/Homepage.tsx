@@ -529,7 +529,7 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
   const config = section.configJson as { collectionIds?: string[]; collectionId?: string } | undefined
   const collectionIds = config?.collectionIds || (config?.collectionId ? [config.collectionId] : [])
 
-  const items = section.items?.filter((i: any) => i.itemType === 'MEDIA_TILE' || i.itemType === 'COLLECTION') || []
+  const items = section.items?.filter((i: any) => i.type === 'MEDIA_TILE' || i.type === 'COLLECTION') || []
   const [collectionProducts, setCollectionProducts] = useState<any[]>([])
 
   useEffect(() => {
@@ -601,50 +601,61 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
               </div>
             )}
             <CarouselContent className="-ml-4">
-              {items.map((item: any) => (
-                <CarouselItem
-                  key={item.id}
-                  className="pl-4 basis-full md:basis-1/2 lg:basis-1/3"
-                >
-                  <Link
-                    to={item.itemType === 'COLLECTION' && !item.ctaUrl ? `/collections/${item.metaJson?.collectionSlug || item.metaJson?.slug || ''}` : (item.ctaUrl || '#')}
-                    target={item.linkTarget === 'BLANK' ? '_blank' : '_self'}
-                    className="media-tile group relative block overflow-hidden aspect-[4/5] rounded-sm"
+              {items.map((item: any) => {
+                // For COLLECTION type, use collection data directly
+                const isCollection = item.type === 'COLLECTION'
+                const title = isCollection ? item.collection?.name : item.title
+                const subtitle = isCollection ? item.collection?.description : item.subtitle
+                const image = isCollection ? item.collection?.image : item.image
+                const linkUrl = isCollection
+                  ? `/collections/${item.collection?.slug || ''}`
+                  : (item.ctaUrl || '#')
+
+                return (
+                  <CarouselItem
+                    key={item.id}
+                    className="pl-4 basis-full md:basis-1/2 lg:basis-1/3"
                   >
-                    {/* Image with enhanced zoom */}
-                    <img
-                      src={item.mediaUrl || '/images/products/placeholder.jpg'}
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
+                    <Link
+                      to={linkUrl}
+                      target={item.linkTarget === 'BLANK' ? '_blank' : '_self'}
+                      className="media-tile group relative block overflow-hidden aspect-[4/5] rounded-sm"
+                    >
+                      {/* Image with enhanced zoom */}
+                      <img
+                        src={image || '/images/products/placeholder.jpg'}
+                        alt={title || ''}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
 
-                    {/* Enhanced overlay with gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300" />
+                      {/* Enhanced overlay with gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300" />
 
-                    {/* Content with slide-up animation */}
-                    <div className="absolute inset-0 flex flex-col justify-end p-6 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                      {item.title && (
-                        <h3 className="text-white text-xl font-bold translate-y-0 group-hover:translate-y-0 transition-transform duration-300">
-                          {item.title}
-                        </h3>
-                      )}
-                      {item.subtitle && (
-                        <p className="text-white/80 text-sm mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
-                          {item.subtitle}
-                        </p>
-                      )}
-                      {item.ctaLabel && (
-                        <span className="text-white text-sm mt-3 underline opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
-                          {item.ctaLabel}
-                        </span>
-                      )}
-                    </div>
+                      {/* Content with slide-up animation */}
+                      <div className="absolute inset-0 flex flex-col justify-end p-6 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                        {title && (
+                          <h3 className="text-white text-xl font-bold translate-y-0 group-hover:translate-y-0 transition-transform duration-300">
+                            {title}
+                          </h3>
+                        )}
+                        {subtitle && (
+                          <p className="text-white/80 text-sm mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
+                            {subtitle}
+                          </p>
+                        )}
+                        {item.cta && (
+                          <span className="text-white text-sm mt-3 underline opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+                            {item.cta}
+                          </span>
+                        )}
+                      </div>
 
-                    {/* Border highlight on hover */}
-                    <div className="absolute inset-0 border-2 border-transparent group-hover:border-white/30 transition-colors duration-300 rounded-sm" />
-                  </Link>
-                </CarouselItem>
-              ))}
+                      {/* Border highlight on hover */}
+                      <div className="absolute inset-0 border-2 border-transparent group-hover:border-white/30 transition-colors duration-300 rounded-sm" />
+                    </Link>
+                  </CarouselItem>
+                )
+              })}
             </CarouselContent>
           </Carousel>
         ) : null}

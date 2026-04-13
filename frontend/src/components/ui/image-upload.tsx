@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { uploadApi } from '@/services/uploadApi'
 import { Spinner } from '@/components/ui/spinner'
 
@@ -20,6 +21,7 @@ export function ImageUpload({
   multiple = false,
   maxImages = 10,
 }: ImageUploadProps) {
+  const { t } = useTranslation()
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<number>(0)
   const [error, setError] = useState<string | null>(null)
@@ -49,8 +51,10 @@ export function ImageUpload({
   // Sync previews when value changes (e.g., when editing an existing image)
   useEffect(() => {
     const images = getImages()
-    if (images.length > 0 && previews.length === 0) {
+    if (images.length > 0) {
       setPreviews(images.map(url => ({ url })))
+    } else if (value === '' || value === undefined) {
+      setPreviews([])
     }
   }, [value])
 
@@ -163,7 +167,7 @@ export function ImageUpload({
               Uploading {uploadProgress}%
             </span>
           ) : (
-            <span>+ Add Images</span>
+            <span>{t('admin.addImages')}</span>
           )}
           <input
             ref={fileInputRef}

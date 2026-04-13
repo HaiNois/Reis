@@ -41,8 +41,12 @@ export default function HomepageSectionsPage() {
 
   const fetchSections = async () => {
     try {
-      const response = await homepageSectionApi.getSections({ limit: 100 })
-      setSections(response.data || [])
+      const result = await homepageSectionApi.getSections({ limit: 100 })
+      console.log('API result:', result)
+      // API returns { success: true, data: [...], meta: {...} }
+      const sectionsArray = Array.isArray(result) ? result : (result?.data || [])
+      console.log('sectionsArray:', sectionsArray)
+      setSections(sectionsArray)
     } catch (error) {
       handleApiError(error, lang === 'vi' ? 'Không thể tải danh sách sections' : 'Failed to fetch sections')
     } finally {
@@ -102,7 +106,7 @@ export default function HomepageSectionsPage() {
   }
 
   const openEdit = (section: HomepageSection) => {
-    navigate(`/admin/homepage-sections/${section.id}`)
+    navigate(`/admin/homepage-sections/${section.id}/edit`)
   }
 
   const openCreate = () => {
@@ -282,7 +286,8 @@ export default function HomepageSectionsPage() {
                 {section.subtitle && (
                   <p className="text-sm text-gray-500 mb-2 line-clamp-1">{section.subtitle}</p>
                 )}
-                <p className="text-xs text-gray-400 mb-3 font-mono">/{section.slug}</p>
+                {/* Slug - show on hover only */}
+                <p className="text-xs text-gray-400 mb-3 font-mono opacity-0 group-hover:opacity-100 transition-opacity">/{section.slug}</p>
 
                 {/* Schedule info */}
                 {(section.startsAt || section.endsAt) && (
@@ -302,21 +307,17 @@ export default function HomepageSectionsPage() {
                   </div>
                 )}
 
-                {/* Stats */}
-                <div className="flex items-center justify-between text-sm text-gray-500 mb-4 pb-3 border-b border-gray-100">
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                    </svg>
-                    {section.items?.length || 0} {lang === 'vi' ? 'items' : 'items'}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                    {(section as any)._count?.products || 0} {lang === 'vi' ? 'sản phẩm' : 'products'}
-                  </span>
-                </div>
+                {/* Stats - only show for PRODUCT_RAIL */}
+                {section.sectionType === 'PRODUCT_RAIL' && (
+                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4 pb-3 border-b border-gray-100">
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      {(section as any)._count?.products || section.products?.length || 0} {lang === 'vi' ? 'sản phẩm' : 'products'}
+                    </span>
+                  </div>
+                )}
 
                 {/* Action buttons */}
                 <div className="flex gap-2">

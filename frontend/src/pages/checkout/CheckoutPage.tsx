@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/stores/cartStore'
 import { Input } from '@/components/ui/input'
 import {
@@ -19,6 +20,7 @@ declare global {
 }
 
 export default function CheckoutPage() {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { items, getTotal, clearCart } = useCartStore()
   const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID
@@ -30,63 +32,32 @@ export default function CheckoutPage() {
     firstName: '',
     lastName: '',
     address: '',
-    city: 'Hồ Chí Minh',
-    district: '',
-    ward: '',
+    city: '',
+    country: 'VN',
     phone: '',
     notes: '',
-    shippingProvince: 'Hồ Chí Minh',
   })
 
-  // Vietnamese provinces/cities for dropdown
-  const cities = [
-    { value: 'hcm', label: 'Hồ Chí Minh' },
-    { value: 'hanoi', label: 'Hà Nội' },
-    { value: 'danang', label: 'Đà Nẵng' },
-    { value: 'other', label: 'Tỉnh/Thành phố khác' },
+  // Countries list
+  const countries = [
+    { value: 'VN', label: 'Vietnam' },
+    { value: 'US', label: 'United States' },
+    { value: 'GB', label: 'United Kingdom' },
+    { value: 'AU', label: 'Australia' },
+    { value: 'CA', label: 'Canada' },
+    { value: 'DE', label: 'Germany' },
+    { value: 'FR', label: 'France' },
+    { value: 'JP', label: 'Japan' },
+    { value: 'KR', label: 'South Korea' },
+    { value: 'SG', label: 'Singapore' },
+    { value: 'MY', label: 'Malaysia' },
+    { value: 'TH', label: 'Thailand' },
+    { value: 'OTHER', label: 'Other Country' },
   ]
 
-  const districts: Record<string, { value: string; label: string }[]> = {
-    hcm: [
-      { value: 'quan1', label: 'Quận 1' },
-      { value: 'quan2', label: 'Quận 2' },
-      { value: 'quan3', label: 'Quận 3' },
-      { value: 'quan4', label: 'Quận 4' },
-      { value: 'quan5', label: 'Quận 5' },
-      { value: 'quan6', label: 'Quận 6' },
-      { value: 'quan7', label: 'Quận 7' },
-      { value: 'quan8', label: 'Quận 8' },
-      { value: 'quan9', label: 'Quận 9' },
-      { value: 'quan10', label: 'Quận 10' },
-      { value: 'quan11', label: 'Quận 11' },
-      { value: 'quan12', label: 'Quận 12' },
-      { value: 'binhthanh', label: 'Bình Thạnh' },
-      { value: 'tanbinh', label: 'Tân Bình' },
-      { value: 'tanphu', label: 'Tân Phú' },
-      { value: 'phunhuan', label: 'Phú Nhuận' },
-      { value: 'go vap', label: 'Gò Vấp' },
-      { value: 'thu duc', label: 'Thủ Đức' },
-    ],
-    hanoi: [
-      { value: 'quan1', label: 'Quận 1' },
-      { value: 'quan2', label: 'Quận 2' },
-      { value: 'quan3', label: 'Quận 3' },
-      { value: 'hoan kiem', label: 'Hoàn Kiếm' },
-      { value: 'tay ho', label: 'Tây Hồ' },
-      { value: 'cau giay', label: 'Cầu Giấy' },
-      { value: 'thanh xuan', label: 'Thanh Xuân' },
-    ],
-    danang: [
-      { value: 'hai chau', label: 'Hải Châu' },
-      { value: 'thanh khe', label: 'Thanh Khê' },
-      { value: 'son tra', label: 'Sơn Trà' },
-      { value: 'ngu hanh son', label: 'Ngũ Hành Sơn' },
-      { value: 'lien chieu', label: 'Liên Chiểu' },
-    ],
-    other: [
-      { value: 'other', label: 'Quận/Huyện' },
-    ],
-  }
+  // Check if international (not Vietnam)
+  const isInternational = formData.country !== 'VN'
+  const lang = i18n.language
 
   // Note: PayPal SDK is loaded but we use redirect flow via backend API
   // SDK loading is kept for potential future SDK button integration
@@ -115,10 +86,9 @@ export default function CheckoutPage() {
         shippingFirstName: formData.firstName,
         shippingLastName: formData.lastName,
         shippingPhone: formData.phone,
-        shippingAddress: `${formData.address}`,
-        shippingWard: formData.ward || '',
-        shippingDistrict: formData.district || '',
-        shippingProvince: formData.city,
+        shippingAddress: formData.address,
+        shippingCity: formData.city,
+        shippingCountry: formData.country,
         paymentMethod: paymentMethodVal,
         notes: formData.notes,
         items: items.map((item) => ({
@@ -130,16 +100,16 @@ export default function CheckoutPage() {
       const response = await api.post('/orders', orderData)
       const orderNumber = response.data.data.orderNumber
 
-      clearCart()
-
       // For COD, redirect to success directly
       if (paymentMethodVal === 'COD') {
+        clearCart()
         sessionStorage.setItem('codOrderNumber', orderNumber)
         navigate('/checkout/success')
       }
+      // For PayPal: DON'T clear cart here - wait until payment confirmed on success page
     } catch (error) {
       console.error('Order creation error:', error)
-      alert('Failed to create order. Please try again.')
+      alert(t('checkout.orderFailed'))
     } finally {
       setLoading(false)
     }
@@ -150,7 +120,7 @@ export default function CheckoutPage() {
 
     // Validate required fields for COD
     if (!formData.firstName || !formData.lastName || !formData.address || !formData.phone) {
-      alert('Vui lòng điền đầy đủ thông tin giao hàng')
+      alert(t('checkout.fillAllFields'))
       return
     }
 
@@ -159,13 +129,13 @@ export default function CheckoutPage() {
 
   const handlePayPalClick = async () => {
     if (!paypalReady || !window.paypal) {
-      alert('PayPal chưa sẵn sàng. Vui lòng thử lại sau.')
+      alert(t('checkout.paypalNotReady'))
       return
     }
 
     // Validate form before PayPal
-    if (!formData.firstName || !formData.lastName || !formData.address || !formData.phone) {
-      alert('Vui lòng điền đầy đủ thông tin giao hàng')
+    if (!formData.firstName || !formData.lastName || !formData.address || !formData.phone || !formData.city) {
+      alert(t('checkout.fillAllFields'))
       return
     }
 
@@ -178,9 +148,8 @@ export default function CheckoutPage() {
         shippingLastName: formData.lastName,
         shippingPhone: formData.phone,
         shippingAddress: formData.address,
-        shippingWard: formData.ward || '',
-        shippingDistrict: formData.district || '',
-        shippingProvince: formData.city,
+        shippingCity: formData.city,
+        shippingCountry: formData.country,
         paymentMethod: 'PAYPAL',
         paymentStatus: 'PENDING',
         subtotal: getTotal(),
@@ -239,7 +208,7 @@ export default function CheckoutPage() {
       }
     } catch (error) {
       console.error('PayPal error:', error)
-      alert('Đã xảy ra lỗi khi khởi tạo PayPal. Vui lòng thử lại.')
+      alert(t('checkout.paypalInitFailed'))
       setLoading(false)
     }
   }
@@ -248,12 +217,14 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const currentDistricts = districts[formData.city] || districts.other
+  const handleCountryChange = (value: string) => {
+    setFormData({ ...formData, country: value, city: '' })
+  }
 
   if (items.length === 0) {
     return (
       <div className="container-custom py-16 text-center">
-        <p className="text-muted-foreground">Giỏ hàng trống</p>
+        <p className="text-muted-foreground">{t('cart.empty')}</p>
       </div>
     )
   }
@@ -266,7 +237,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen">
       <div className="bg-white max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-serif font-bold mb-6">Checkout</h1>
+        <h1 className="text-2xl font-serif font-bold mb-6">{t('checkout.title')}</h1>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column - Form */}
@@ -275,12 +246,12 @@ export default function CheckoutPage() {
             <div className="bg-card rounded-xl p-5">
               <h2 className="text-base font-medium mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-black text-white text-xs flex items-center justify-center">1</span>
-                Contact
+                {t('checkout.paymentMethod')}
               </h2>
               <Input
                 name="email"
                 type="email"
-                placeholder="Email"
+                placeholder={t('auth.email')}
                 value={formData.email}
                 onChange={handleChange}
                 className="h-12"
@@ -291,20 +262,20 @@ export default function CheckoutPage() {
             <div className="bg-card rounded-xl p-5">
               <h2 className="text-base font-medium mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-black text-white text-xs flex items-center justify-center">2</span>
-                Shipping Address
+                {t('checkout.shippingInfo')}
               </h2>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <Input
                     name="firstName"
-                    placeholder="First Name"
+                    placeholder={t('checkout.firstName')}
                     value={formData.firstName}
                     onChange={handleChange}
                     className="h-12"
                   />
                   <Input
                     name="lastName"
-                    placeholder="Last Name"
+                    placeholder={t('checkout.lastName')}
                     value={formData.lastName}
                     onChange={handleChange}
                     className="h-12"
@@ -312,41 +283,36 @@ export default function CheckoutPage() {
                 </div>
                 <Input
                   name="address"
-                  placeholder="Address"
+                  placeholder={t('checkout.addressPlaceholder')}
                   value={formData.address}
                   onChange={handleChange}
                   className="h-12"
                 />
                 <div className="grid grid-cols-2 gap-4">
-                  <Select value={formData.city} onValueChange={(v) => setFormData({ ...formData, city: v, district: '' })}>
+                  <Select value={formData.country} onValueChange={handleCountryChange}>
                     <SelectTrigger className="h-12">
-                      <SelectValue placeholder="City" />
+                      <SelectValue placeholder={t('checkout.country')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {cities.map((city) => (
-                        <SelectItem key={city.value} value={city.value}>
-                          {city.label}
+                      {countries.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={formData.district} onValueChange={(v) => setFormData({ ...formData, district: v })}>
-                    <SelectTrigger className="h-12">
-                      <SelectValue placeholder="District" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currentDistricts.map((d) => (
-                        <SelectItem key={d.value} value={d.value}>
-                          {d.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    name="city"
+                    placeholder={isInternational ? (lang === 'vi' ? 'Thành phố/Tỉnh' : 'City/State/Province') : t('checkout.city')}
+                    value={formData.city}
+                    onChange={handleChange}
+                    className="h-12"
+                  />
                 </div>
                 <Input
                   name="phone"
                   type="tel"
-                  placeholder="Phone number"
+                  placeholder={t('checkout.phone')}
                   value={formData.phone}
                   onChange={handleChange}
                   className="h-12"
@@ -358,7 +324,7 @@ export default function CheckoutPage() {
             <div className="bg-card rounded-xl p-5">
               <h2 className="text-base font-medium mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-black text-white text-xs flex items-center justify-center">3</span>
-                Shipping Method
+                {t('checkout.shippingMethod')}
               </h2>
               <div className="border-2 border-black rounded-lg p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -368,11 +334,11 @@ export default function CheckoutPage() {
                     </svg>
                   </div>
                   <div>
-                    <p className="font-medium">Standard Delivery</p>
-                    <p className="text-sm text-muted-foreground">Delivery in 3-5 days</p>
+                    <p className="font-medium">{t('checkout.standardDelivery')}</p>
+                    <p className="text-sm text-muted-foreground">{t('checkout.deliveryTime')}</p>
                   </div>
                 </div>
-                <p className="font-medium">Free</p>
+                <p className="font-medium">{t('common.free')}</p>
               </div>
             </div>
 
@@ -380,7 +346,7 @@ export default function CheckoutPage() {
             <div className="bg-card rounded-xl p-5">
               <h2 className="text-base font-medium mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-black text-white text-xs flex items-center justify-center">4</span>
-                Payment
+                {t('checkout.payment')}
               </h2>
               <div className="space-y-3">
                 <PayPalButton
@@ -389,17 +355,27 @@ export default function CheckoutPage() {
                   disabled={loading}
                 />
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-14 bg-black hover:bg-black/90 text-white font-medium rounded-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-50"
-                >
-                  {loading ? (
-                    <span>Processing...</span>
-                  ) : (
-                    <span>Thanh toán khi nhận hàng (COD)</span>
-                  )}
-                </button>
+                {/* COD only available for Vietnam */}
+                {!isInternational && (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-14 bg-black hover:bg-black/90 text-white font-medium rounded-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <span>{t('common.processing')}</span>
+                    ) : (
+                      <span>{t('checkout.cod')}</span>
+                    )}
+                  </button>
+                )}
+
+                {/* International notice */}
+                {isInternational && (
+                  <p className="text-sm text-muted-foreground text-center">
+                    {t('checkout.internationalNotice')}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -407,7 +383,7 @@ export default function CheckoutPage() {
           {/* Right Column - Order Summary */}
           <div className="lg:col-span-5">
             <div className="bg-card rounded-xl p-5 lg:sticky lg:top-4">
-              <h2 className="text-base font-medium mb-4">Your Order</h2>
+              <h2 className="text-base font-medium mb-4">{t('checkout.orderSummary')}</h2>
 
               {/* Items */}
               <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto">
@@ -439,15 +415,15 @@ export default function CheckoutPage() {
               {/* Totals */}
               <div className="space-y-3 border-t pt-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">{t('cart.subtotal')}</span>
                   <span>{subtotal.toLocaleString('vi-VN')} ₫</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Shipping</span>
-                  <span className="text-green-600 font-medium">Free</span>
+                  <span className="text-muted-foreground">{t('cart.shipping')}</span>
+                  <span className="text-green-600 font-medium">{t('common.free')}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg pt-2 border-t">
-                  <span>Total</span>
+                  <span>{t('cart.total')}</span>
                   <span>{total.toLocaleString('vi-VN')} ₫</span>
                 </div>
               </div>

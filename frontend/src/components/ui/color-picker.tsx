@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { getColorHex } from '@/config/product'
-import { Label } from './label'
 import { ChevronDown, Check } from 'lucide-react'
 
 interface ColorPickerProps {
@@ -48,7 +47,7 @@ const COLORS = [
   { name: 'teal', label: 'Teal' },
 ]
 
-export function ColorPicker({ value, onChange, label = 'Color' }: ColorPickerProps) {
+export function ColorPicker({ value, onChange }: ColorPickerProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -62,7 +61,6 @@ export function ColorPicker({ value, onChange, label = 'Color' }: ColorPickerPro
 
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
       <div className="relative">
         <button
           type="button"

@@ -12,7 +12,11 @@
     "viewMore": "View More",
     "home": "Home",
     "products": "Products",
-    "free": "Free"
+    "free": "Free",
+    "processing": "Processing...",
+    "continueShopping": "Continue Shopping",
+    "backToCart": "Back to Cart",
+    "backToHome": "Back to Home"
   },
   "header": {
     "home": "Home",
@@ -24,7 +28,9 @@
     "account": "Account",
     "login": "Login",
     "register": "Register",
-    "logout": "Logout"
+    "logout": "Logout",
+    "menu": "Menu",
+    "search": "Search"
   },
   "footer": {
     "brand": "Rei.s",
@@ -79,7 +85,12 @@
     "title": "Order Successful!",
     "message": "Thank you for your order. We will contact you soon.",
     "continueShopping": "Continue Shopping",
-    "viewOrder": "View Order"
+    "viewOrder": "View Order",
+    "processingTitle": "Processing payment...",
+    "processingMessage": "Please wait a moment",
+    "paymentFailedTitle": "Payment Failed",
+    "paymentFailedMessage": "An error occurred while processing PayPal payment. Please try again or contact support.",
+    "orderNumber": "Order Number"
   },
   "product": {
     "addToCart": "Add to Cart",
@@ -98,7 +109,8 @@
     "sizeGuide": "Size Guide",
     "selectSizeFirst": "Select size",
     "selectColorFirst": "Select color",
-    "sale": "Sale"
+    "sale": "Sale",
+    "addedToCart": "Added to cart"
   },
   "cart": {
     "title": "Shopping Cart",
@@ -119,15 +131,26 @@
     "paymentMethod": "Payment Method",
     "orderSummary": "Order Summary",
     "placeOrder": "Place Order",
-    "cod": "Cash on Delivery",
+    "cod": "Cash on Delivery (COD)",
     "fullName": "Full Name",
+    "firstName": "First Name",
+    "lastName": "Last Name",
     "email": "Email",
     "phone": "Phone",
     "address": "Address",
+    "addressPlaceholder": "Street address, apartment, suite, unit, building, floor...",
     "city": "City",
-    "district": "District",
-    "ward": "Ward",
-    "notes": "Notes (optional)"
+    "country": "Country",
+    "notes": "Notes (optional)",
+    "payment": "Payment",
+    "shippingMethod": "Shipping Method",
+    "standardDelivery": "Standard Delivery",
+    "deliveryTime": "Delivery in 3-5 days",
+    "internationalNotice": "International orders require PayPal payment",
+    "paypalNotReady": "PayPal is not ready. Please try again later.",
+    "fillAllFields": "Please fill in all required shipping information",
+    "orderFailed": "Failed to create order. Please try again.",
+    "paypalInitFailed": "An error occurred while initializing PayPal. Please try again."
   },
   "order": {
     "status": {
@@ -273,6 +296,20 @@
     "variantClear": "Clear",
     "variantSaved": "Variant saved",
     "variantDeleted": "Variant deleted",
-    "searchPlaceholder": "Search products..."
+    "searchPlaceholder": "Search products...",
+    "productAllStatus": "All Status",
+    "productAllCategories": "All Categories",
+    "backToProducts": "Back to Products",
+    "basicInfo": "Basic Info",
+    "variants": "Variants",
+    "addImages": "Add Images",
+    "bulkDelete": "Delete Products",
+    "bulkDeleteConfirm": "Are you sure you want to delete {count} products?",
+    "bulkDeleted": "{count} products deleted",
+    "bulkStatusChanged": "{count} products updated",
+    "changeStatus": "Change Status",
+    "applyStatus": "Apply",
+    "clear": "Clear",
+    "productsSelected": "products selected"
   }
 }

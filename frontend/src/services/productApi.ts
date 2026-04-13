@@ -252,18 +252,18 @@ export const productApi = {
     return response.data
   },
 
-  updateVariant: async (variantId: string, data: Partial<ProductVariant>) => {
-    const response = await api.patch(`/admin/variants/${variantId}`, data)
+  updateVariant: async (productId: string, variantId: string, data: Partial<ProductVariant>) => {
+    const response = await api.patch(`/admin/products/${productId}/variants/${variantId}`, data)
     return response.data
   },
 
-  updateVariantStock: async (variantId: string, data: { quantity: number; note?: string }) => {
-    const response = await api.patch(`/admin/variants/${variantId}/stock`, data)
+  updateVariantStock: async (productId: string, variantId: string, data: { quantity: number; note?: string }) => {
+    const response = await api.patch(`/admin/products/${productId}/variants/${variantId}/stock`, data)
     return response.data
   },
 
-  deleteVariant: async (variantId: string) => {
-    const response = await api.delete(`/admin/variants/${variantId}`)
+  deleteVariant: async (productId: string, variantId: string) => {
+    const response = await api.delete(`/admin/products/${productId}/variants/${variantId}`)
     return response.data
   },
 

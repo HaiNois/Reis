@@ -12,9 +12,8 @@ export const createOrderSchema = z.object({
   shippingLastName: z.string().min(1, 'Last name is required'),
   shippingPhone: z.string().min(1, 'Phone is required'),
   shippingAddress: z.string().min(1, 'Address is required'),
-  shippingWard: z.string().min(1, 'Ward is required'),
-  shippingDistrict: z.string().min(1, 'District is required'),
-  shippingProvince: z.string().min(1, 'Province is required'),
+  shippingCity: z.string().min(1, 'City is required'),
+  shippingCountry: z.string().min(1, 'Country is required'),
 
   notes: z.string().optional(),
 })
