@@ -1,0 +1,23 @@
+{
+  "skill_name": "integration-helper",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Integrate GHTK shipping API into our e-commerce platform. We need to create shipment orders, track packages, and handle webhook callbacks for status updates.",
+      "expected_output": "GHTK service with createOrder, getTracking, webhook handler methods; Routes configured; Environment variables documented",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Add Stripe payment to our checkout flow. We want to support credit card payments and handle webhook notifications for payment confirmation.",
+      "expected_output": "Stripe service with createCheckoutSession, handleWebhook, createRefund methods; Frontend payment button component; Webhook handler",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our PayPal integration is working but webhook isn't updating order status. Help me fix the webhook handler to properly update orders when PayPal sends IPN notifications.",
+      "expected_output": "Fixed webhook handler that validates PayPal IPN, updates order paymentStatus to PAID, handles duplicate notifications",
+      "files": ["/backend/src/modules/payment/payment.routes.ts"]
+    }
+  ]
+}

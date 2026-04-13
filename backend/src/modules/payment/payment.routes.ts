@@ -6,6 +6,8 @@ import { asyncHandler } from '../../shared/utils/error-handler.js'
 const router = Router()
 
 // PayPal Routes
+
+// Create PayPal order for checkout
 router.post('/payment/paypal/create-order', asyncHandler(async (req, res) => {
   const { amount, currency = 'USD' } = req.body
 
@@ -17,17 +19,28 @@ router.post('/payment/paypal/create-order', asyncHandler(async (req, res) => {
     return
   }
 
-  const order = await paypalService.createOrder(amount, currency)
+  try {
+    const order = await paypalService.createOrder(amount, currency)
+    const approvalUrl = order.links.find((link: any) => link.rel === 'approve')?.href
 
-  res.json({
-    success: true,
-    data: {
-      orderId: order.id,
-      approvalUrl: order.links.find((link: any) => link.rel === 'approve')?.href,
-    },
-  })
+    res.json({
+      success: true,
+      data: {
+        orderId: order.id,
+        approvalUrl,
+        status: order.status,
+      },
+    })
+  } catch (error: any) {
+    console.error('PayPal create order error:', error?.response?.data || error.message)
+    res.status(500).json({
+      success: false,
+      error: { code: 'PAYPAL_ERROR', message: 'Failed to create PayPal order' },
+    })
+  }
 }))
 
+// Capture PayPal order after redirect
 router.post('/payment/paypal/capture-order', asyncHandler(async (req, res) => {
   const { orderId, localOrderId } = req.body
 
@@ -39,32 +52,75 @@ router.post('/payment/paypal/capture-order', asyncHandler(async (req, res) => {
     return
   }
 
-  const capture = await paypalService.captureOrder(orderId)
+  try {
+    const capture = await paypalService.captureOrder(orderId)
 
-  // Update order payment status if localOrderId provided
-  if (localOrderId) {
-    await orderService.updatePaymentStatus(localOrderId, 'PAID', capture.id)
+    // Update order payment status if localOrderId provided
+    if (localOrderId && capture.status === 'COMPLETED') {
+      await orderService.updatePaymentStatus(localOrderId, 'PAID', capture.id)
+    }
+
+    res.json({
+      success: true,
+      data: {
+        captureId: capture.id,
+        status: capture.status,
+        amount: capture.purchase_units[0]?.payments?.captures[0]?.amount?.value,
+        currency: capture.purchase_units[0]?.payments?.captures[0]?.amount?.currency_code,
+      },
+    })
+  } catch (error: any) {
+    console.error('PayPal capture error:', error?.response?.data || error.message)
+    res.status(500).json({
+      success: false,
+      error: { code: 'PAYPAL_CAPTURE_ERROR', message: 'Failed to capture PayPal order' },
+    })
   }
-
-  res.json({
-    success: true,
-    data: {
-      captureId: capture.id,
-      status: capture.status,
-      amount: capture.purchase_units[0]?.payments?.captures[0]?.amount?.value,
-      currency: capture.purchase_units[0]?.payments?.captures[0]?.amount?.currency_code,
-    },
-  })
 }))
 
+// Get PayPal order status
 router.get('/payment/paypal/order/:orderId', asyncHandler(async (req, res) => {
   const { orderId } = req.params
-  const order = await paypalService.getOrder(orderId)
 
-  res.json({
-    success: true,
-    data: order,
-  })
+  try {
+    const order = await paypalService.getOrder(orderId)
+    res.json({
+      success: true,
+      data: order,
+    })
+  } catch (error: any) {
+    console.error('PayPal get order error:', error?.response?.data || error.message)
+    res.status(500).json({
+      success: false,
+      error: { code: 'PAYPAL_ERROR', message: 'Failed to get PayPal order' },
+    })
+  }
+}))
+
+// PayPal Webhook handler (for async notifications)
+router.post('/payment/paypal/webhook', asyncHandler(async (req, res) => {
+  const webhookEvent = req.body
+
+  console.log('PayPal webhook received:', webhookEvent.event_type)
+
+  switch (webhookEvent.event_type) {
+    case 'PAYMENT.CAPTURE.COMPLETED':
+      // Handle successful payment
+      if (webhookEvent.resource?.custom_id) {
+        await orderService.updatePaymentStatus(webhookEvent.resource.custom_id, 'PAID', webhookEvent.resource.id)
+      }
+      break
+    case 'PAYMENT.CAPTURE.DENIED':
+      // Handle denied payment
+      if (webhookEvent.resource?.custom_id) {
+        await orderService.updatePaymentStatus(webhookEvent.resource.custom_id, 'FAILED', webhookEvent.resource.id)
+      }
+      break
+    default:
+      console.log('Unhandled PayPal webhook event:', webhookEvent.event_type)
+  }
+
+  res.json({ received: true })
 }))
 
 export default router

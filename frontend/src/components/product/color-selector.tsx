@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_COLOR_HEX } from '@/config/product'
 
@@ -141,7 +140,7 @@ export function getAvailableColors(
 ): Set<string> {
   return new Set(
     variants
-      .filter((v) => v.quantity > 0)
+      .filter((v) => (v.quantity ?? 0) > 0)
       .map((v) => v.color)
   )
 }

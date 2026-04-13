@@ -2,6 +2,8 @@ import { Routes, Route } from 'react-router-dom'
 import MainLayout from './components/layout/MainLayout'
 import AdminLayout from './pages/admin/AdminLayout'
 import Homepage from './pages/storefront/Homepage'
+import NotFoundPage from './pages/storefront/NotFoundPage'
+import ComingSoonPage from './pages/storefront/ComingSoonPage'
 import CatalogPage from './pages/storefront/CatalogPage'
 import ProductPage from './pages/storefront/ProductPage'
 import CartPage from './pages/cart/CartPage'
@@ -46,6 +48,8 @@ function App() {
           <Route path="account/orders" element={<OrderHistoryPage />} />
           <Route path="account/orders/:orderNumber" element={<OrderDetailPage />} />
           <Route path="track" element={<OrderTrackingPage />} />
+          <Route path="coming-soon" element={<ComingSoonPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
 
         {/* Admin Routes */}

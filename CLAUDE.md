@@ -170,3 +170,37 @@ backend/
 - Reviews
 - Analytics dashboard
 - SEO optimization
+
+# SKILLS & INTEGRATIONS
+
+## Available Skills
+Xem chi tiết trong `docs/skills/`
+
+### integration-helper
+Tích hợp third-party APIs: `docs/skills/SKILL.md`
+- Payment: PayPal, Stripe, VNPay, MoMo
+- Shipping: GHTK, VNPost, GHN
+- Webhook handlers
+
+Trigger: "integrate PayPal", "add Stripe", "GHTK shipping"
+
+### hostinger-deploy
+Deploy lên Hostinger: `docs/skills/hostinger-deploy.md`
+- VPS/Cloud/Business hosting
+- Node.js + PM2 setup
+- Nginx reverse proxy
+- SSL certificates
+
+Trigger: "deploy to Hostinger", "Hostinger VPS", "setup production"
+
+## Third-Party Integration Templates
+
+### Payment Flow
+```
+Checkout → Create Order → Redirect Provider → Webhook/Return → Update Order
+```
+
+### Shipping Flow
+```
+Order Confirmed → Create Shipment → Get Tracking → Sync Status → Delivery
+```

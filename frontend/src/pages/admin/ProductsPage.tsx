@@ -14,7 +14,17 @@ import { useConfirm } from '@/components/providers/confirm-provider'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Pencil, Trash2, Plus } from 'lucide-react'
-import { SIZE_ORDER } from '@/config/product'
+import { ColorPicker } from '@/components/ui/color-picker'
+import { SizePicker } from '@/components/ui/size-picker'
+
+// Generate SKU from product slug + color + size
+function generateSku(productSlug: string, color: string, size: string): string {
+  const slugPart = productSlug.substring(0, 6).toUpperCase().replace(/-/g, '')
+  const colorPart = color.substring(0, 4).toUpperCase().replace(/\s+/g, '')
+  const sizePart = size.toUpperCase()
+  const random = Math.random().toString(36).substring(2, 5).toUpperCase()
+  return `${slugPart}-${colorPart}-${sizePart}-${random}`
+}
 
 // Define columns for products table
 const productColumns = (
@@ -127,18 +137,25 @@ export default function ProductsPage() {
     quantity: 0,
   })
 
+  // Auto-generate SKU when size or color changes
+  useEffect(() => {
+    if ((variantForm.size || variantForm.color) && editingProduct) {
+      const newSku = generateSku(editingProduct.slug, variantForm.color, variantForm.size)
+      setVariantForm(prev => ({ ...prev, sku: newSku }))
+    }
+  }, [variantForm.size, variantForm.color, editingProduct])
+
+  // Set default price from product when product changes
+  useEffect(() => {
+    if (editingProduct && variantForm.price === 0) {
+      setVariantForm(prev => ({ ...prev, price: editingProduct.price }))
+    }
+  }, [editingProduct, variantForm.price])
+
   // Form validation
   const isFormValid = formData.name.trim().length > 0 &&
     formData.slug.trim().length > 0 &&
     formData.price > 0
-
-  // Extract unique colors and sizes from existing variants
-  const variantColors = [...new Set(editingProduct?.variants?.map(v => v.color).filter(Boolean) || [])].sort()
-  const variantSizes = [...new Set(editingProduct?.variants?.map(v => v.size).filter(Boolean) || [])].sort((a, b) => {
-    const indexA = SIZE_ORDER.indexOf(a.toUpperCase() as typeof SIZE_ORDER[number])
-    const indexB = SIZE_ORDER.indexOf(b.toUpperCase() as typeof SIZE_ORDER[number])
-    return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB)
-  })
 
   useEffect(() => {
     fetchProducts()
@@ -252,6 +269,14 @@ export default function ProductsPage() {
       status: 'ACTIVE',
       image: '',
       categoryId: '',
+    })
+    setVariantForm({
+      sku: '',
+      size: '',
+      color: '',
+      price: 0,
+      salePrice: 0,
+      quantity: 0,
     })
   }
 
@@ -443,41 +468,19 @@ export default function ProductsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="color">Color</Label>
-                <select
-                  id="color"
+                <ColorPicker
                   value={variantForm.color}
-                  onChange={(e) => setVariantForm({ ...variantForm, color: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">Select Color</option>
-                  {variantColors.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                  {variantForm.color && !variantColors.includes(variantForm.color) && (
-                    <option value={variantForm.color}>{variantForm.color} (current)</option>
-                  )}
-                </select>
+                  onChange={(color) => setVariantForm({ ...variantForm, color })}
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="size">Size</Label>
-                <select
-                  id="size"
+                <SizePicker
                   value={variantForm.size}
-                  onChange={(e) => setVariantForm({ ...variantForm, size: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">Select Size</option>
-                  {variantSizes.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                  {variantForm.size && !variantSizes.includes(variantForm.size) && (
-                    <option value={variantForm.size}>{variantForm.size} (current)</option>
-                  )}
-                </select>
+                  onChange={(size) => setVariantForm({ ...variantForm, size })}
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="variantPrice">Price</Label>
+                <Label htmlFor="variantPrice">Price (VND)</Label>
                 <Input
                   id="variantPrice"
                   type="number"
@@ -486,12 +489,13 @@ export default function ProductsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="salePrice">Sale Price</Label>
+                <Label htmlFor="variantSalePrice">Sale Price (VND)</Label>
                 <Input
-                  id="salePrice"
+                  id="variantSalePrice"
                   type="number"
                   value={variantForm.salePrice}
                   onChange={(e) => setVariantForm({ ...variantForm, salePrice: Number(e.target.value) })}
+                  placeholder="Optional"
                 />
               </div>
               <div className="space-y-2">
@@ -510,7 +514,7 @@ export default function ProductsPage() {
                 type="button"
                 onClick={() => {
                   setEditingVariant(null)
-                  setVariantForm({ sku: '', size: '', color: '', price: 0, salePrice: 0, quantity: 0 })
+                  setVariantForm({ sku: '', size: '', color: '', price: editingProduct?.price || 0, salePrice: 0, quantity: 0 })
                 }}
               >
                 Clear
@@ -523,14 +527,23 @@ export default function ProductsPage() {
                     return
                   }
                   try {
+                    // Use form data including price and salePrice
+                    const variantData = {
+                      sku: variantForm.sku,
+                      size: variantForm.size,
+                      color: variantForm.color,
+                      price: variantForm.price,
+                      salePrice: variantForm.salePrice || undefined,
+                      quantity: variantForm.quantity,
+                    }
                     if (editingVariant) {
-                      await productApi.updateVariant(editingVariant.id, variantForm)
+                      await productApi.updateVariant(editingVariant.id, variantData)
                       showToast.success('Variant updated')
                     } else {
-                      await productApi.createVariant(editingProduct.id, variantForm)
+                      await productApi.createVariant(editingProduct.id, variantData)
                       showToast.success('Variant created')
                     }
-                    setVariantForm({ sku: '', size: '', color: '', price: 0, salePrice: 0, quantity: 0 })
+                    setVariantForm({ sku: '', size: '', color: '', price: editingProduct?.price || 0, salePrice: 0, quantity: 0 })
                     setEditingVariant(null)
                     fetchProducts()
                   } catch (error) {
@@ -554,6 +567,7 @@ export default function ProductsPage() {
                     <th className="px-3 py-2 text-left">Color</th>
                     <th className="px-3 py-2 text-left">Size</th>
                     <th className="px-3 py-2 text-right">Price</th>
+                    <th className="px-3 py-2 text-right">Sale Price</th>
                     <th className="px-3 py-2 text-right">Qty</th>
                     <th className="px-3 py-2 text-center">Actions</th>
                   </tr>
@@ -564,8 +578,11 @@ export default function ProductsPage() {
                       <td className="px-3 py-2">{variant.sku}</td>
                       <td className="px-3 py-2">{variant.color}</td>
                       <td className="px-3 py-2">{variant.size}</td>
+                      <td className="px-3 py-2 text-right">{Number(variant.price).toLocaleString('vi-VN')} ₫</td>
                       <td className="px-3 py-2 text-right">
-                        {Number(variant.price).toLocaleString('vi-VN')} ₫
+                        {variant.salePrice && variant.salePrice > 0
+                          ? `${Number(variant.salePrice).toLocaleString('vi-VN')} ₫`
+                          : '-'}
                       </td>
                       <td className="px-3 py-2 text-right">{variant.quantity}</td>
                       <td className="px-3 py-2 text-center">
@@ -581,7 +598,7 @@ export default function ProductsPage() {
                                 color: variant.color,
                                 price: variant.price,
                                 salePrice: variant.salePrice || 0,
-                                quantity: variant.quantity,
+                                quantity: variant.quantity || 0,
                               })
                             }}
                           >

@@ -2,21 +2,14 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/stores/cartStore'
-import {
-  productApi,
-  getMainImageUrl,
-  getImageUrl,
-  FALLBACK_IMAGE,
-  ProductImage,
-  ProductVariant,
-} from '@/services/productApi'
+import { productApi, getMainImageUrl, FALLBACK_IMAGE } from '@/services/productApi'
 import { showToast } from '@/utils/toast'
 import { Spinner } from '@/components/ui/spinner'
-import { ColorSelector, extractColorsFromVariants, getAvailableColors, ColorOption } from '@/components/product/color-selector'
-import { SIZE_ORDER } from '@/config/product'
+import { ProductVariant } from '@/services/productApi'
 
-interface ProductDetailProps {
-  productSlug?: string
+interface ColorOption {
+  name: string
+  hex: string
 }
 
 export default function ProductPage() {
@@ -27,23 +20,7 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1)
   const [mainImage, setMainImage] = useState(FALLBACK_IMAGE)
   const [loading, setLoading] = useState(true)
-  const [product, setProduct] = useState<{
-    id: string
-    name: string
-    nameEn?: string
-    slug: string
-    description?: string
-    descriptionEn?: string
-    material?: string
-    materialEn?: string
-    careGuide?: string
-    careGuideEn?: string
-    price: number
-    compareAtPrice?: number
-    image?: string
-    images: ProductImage[]
-    variants: ProductVariant[]
-  } | null>(null)
+  const [product, setProduct] = useState<any>(null)
 
   // Zoom state
   const [isZooming, setIsZooming] = useState(false)
@@ -53,8 +30,6 @@ export default function ProductPage() {
   const addItem = useCartStore((state) => state.addItem)
   const lang = i18n.language
 
-  // ==================== FETCH PRODUCT ====================
-
   useEffect(() => {
     const fetchProduct = async () => {
       if (!slug) return
@@ -62,9 +37,10 @@ export default function ProductPage() {
         const response = await productApi.getProductBySlug(slug)
         setProduct(response.data)
 
-        // Set main image
+        // Set main image - handle both legacy `image` string and new `images` array
         let imageUrl = FALLBACK_IMAGE
         if (response.data.image) {
+          // Legacy: image is a JSON string array
           try {
             const imageUrls = JSON.parse(response.data.image)
             if (Array.isArray(imageUrls) && imageUrls.length > 0) {
@@ -74,6 +50,7 @@ export default function ProductPage() {
             imageUrl = response.data.image
           }
         } else if (response.data.images && response.data.images.length > 0) {
+          // New: images array with publicUrl/url
           imageUrl = getMainImageUrl(response.data.images)
         }
         setMainImage(imageUrl)
@@ -93,15 +70,10 @@ export default function ProductPage() {
     setQuantity(1)
   }, [product?.id])
 
-  // ==================== PRODUCT DATA ====================
-
   const currentProduct = product
-  const variants: ProductVariant[] = currentProduct?.variants || []
-
-  // ==================== IMAGE HANDLING ====================
 
   // Build images array from legacy `image` field or new `images` relation
-  const productImages = useMemo(() => {
+  const productImages = (() => {
     if (currentProduct?.images && currentProduct.images.length > 0) {
       return currentProduct.images
     }
@@ -123,46 +95,63 @@ export default function ProductPage() {
       }
     }
     return []
-  }, [currentProduct?.image, currentProduct?.images])
+  })()
 
-  const thumbnails = productImages.slice(1)
+  const thumbnails = productImages.slice(1) // All except first
+  const variants: ProductVariant[] = currentProduct?.variants || []
 
-  // ==================== VARIANT LOGIC ====================
-
-  // Extract unique colors from variants
-  const colors: ColorOption[] = useMemo(() => {
-    return extractColorsFromVariants(variants)
-  }, [variants])
-
-  // Extract unique sizes from variants (sorted)
-  const sizes = useMemo(() => {
+  // Extract unique colors and sizes from variants
+  const { colors, sizes } = useMemo(() => {
+    const colorMap = new Map<string, ColorOption>()
     const sizeSet = new Set<string>()
+    const colorDefaults: Record<string, string> = {
+      'trắng': '#ffffff', 'white': '#ffffff',
+      'đen': '#000000', 'black': '#000000',
+      'be': '#d4c4a8', 'beige': '#d4c4a8',
+      'xanh navy': '#000080', 'navy': '#000080', 'navy blue': '#000080',
+      'xám': '#808080', 'gray': '#808080', 'grey': '#808080',
+      'đỏ': '#ff0000', 'red': '#ff0000',
+      'hồng': '#ffc0cb', 'pink': '#ffc0cb',
+      'xanh': '#008000', 'green': '#008000', 'forest': '#228b22',
+      'nâu': '#8b4513', 'brown': '#8b4513',
+      'cam': '#ffa500', 'orange': '#ffa500',
+      'tím': '#800080', 'purple': '#800080',
+      'vàng': '#ffff00', 'yellow': '#ffff00', 'gold': '#ffd700',
+    }
+
     variants.forEach((v: ProductVariant) => {
-      if (v.size) {
+      if (v.color) {
         sizeSet.add(v.size)
+        if (!colorMap.has(v.color)) {
+          colorMap.set(v.color, {
+            name: v.color,
+            hex: colorDefaults[v.color.toLowerCase()] || '#888888',
+          })
+        }
       }
     })
-    return Array.from(sizeSet).sort((a, b) => {
-      const indexA = SIZE_ORDER.indexOf(a.toUpperCase() as typeof SIZE_ORDER[number])
-      const indexB = SIZE_ORDER.indexOf(b.toUpperCase() as typeof SIZE_ORDER[number])
-      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB)
-    })
-  }, [variants])
 
-  // Available colors (colors with stock)
-  const availableColors = useMemo(() => {
-    return getAvailableColors(variants)
+    return {
+      colors: Array.from(colorMap.values()),
+      sizes: Array.from(sizeSet).sort((a, b) => {
+        const order = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
+        const indexA = order.indexOf(a.toUpperCase())
+        const indexB = order.indexOf(b.toUpperCase())
+        // If size not in order list, put it at the end
+        return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB)
+      }),
+    }
   }, [variants])
 
   // Find selected variant based on color + size
   const selectedVariant = useMemo(() => {
     if (!selectedColor || !selectedSize) return null
-    return variants.find(
-      (v: ProductVariant) => v.color === selectedColor && v.size === selectedSize
+    return variants.find((v: ProductVariant) =>
+      v.color === selectedColor && v.size === selectedSize
     )
   }, [variants, selectedColor, selectedSize])
 
-  // Available sizes for selected color (only show sizes with stock)
+  // Available sizes for selected color
   const availableSizes = useMemo(() => {
     if (!selectedColor) return new Set<string>()
     return new Set(
@@ -172,18 +161,14 @@ export default function ProductPage() {
     )
   }, [variants, selectedColor])
 
-  // ==================== PRICE HANDLING ====================
-
-  const currentPrice =
-    selectedVariant?.salePrice || selectedVariant?.price || currentProduct?.price || 0
-  const currentCompareAtPrice =
-    selectedVariant?.price &&
-    selectedVariant?.salePrice &&
-    selectedVariant.price > selectedVariant.salePrice
-      ? selectedVariant.price
-      : currentProduct?.compareAtPrice
-
-  // ==================== IMAGE HANDLERS ====================
+  // Current price (from variant or product)
+  const hasVariantSalePrice = selectedVariant?.salePrice && selectedVariant?.salePrice > 0
+  const currentPrice = hasVariantSalePrice
+    ? selectedVariant!.salePrice!
+    : (selectedVariant?.price || currentProduct?.price || 0)
+  const currentCompareAtPrice = hasVariantSalePrice
+    ? (selectedVariant!.price > selectedVariant!.salePrice! ? selectedVariant!.price : undefined)
+    : undefined
 
   const handleImageClick = (imageUrl: string) => {
     setMainImage(imageUrl)
@@ -214,22 +199,17 @@ export default function ProductPage() {
       return
     }
 
-    addItem(
-      {
-        variantId: selectedVariant.id,
-        productId: currentProduct!.id,
-        productName: currentProduct!.name,
-        variantName: `${selectedSize} - ${selectedColor}`,
-        price: currentPrice,
-        image: mainImage,
-        maxQuantity: selectedVariant.quantity,
-      },
-      quantity
-    )
+    addItem({
+      variantId: selectedVariant.id,
+      productId: currentProduct.id,
+      productName: currentProduct.name,
+      variantName: `${selectedSize} - ${selectedColor}`,
+      price: Number(currentPrice),
+      image: mainImage,
+      maxQuantity: selectedVariant.quantity,
+    }, quantity)
     showToast.success(t('product.addToCart'))
   }
-
-  // ==================== RENDER ====================
 
   if (loading) {
     return (
@@ -239,25 +219,13 @@ export default function ProductPage() {
     )
   }
 
-  if (!currentProduct) {
-    return (
-      <div className="container-custom py-8 md:py-12">
-        <p className="text-center text-gray-500">{t('common.error')}</p>
-      </div>
-    )
-  }
-
   return (
     <div className="container-custom py-8 md:py-12">
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-8">
-        <Link to="/" className="hover:text-black">
-          {t('common.home')}
-        </Link>
+        <Link to="/" className="hover:text-black">{t('common.home')}</Link>
         <span className="mx-2">/</span>
-        <Link to="/products" className="hover:text-black">
-          {t('common.products')}
-        </Link>
+        <Link to="/products" className="hover:text-black">{t('common.products')}</Link>
         <span className="mx-2">/</span>
         <span className="text-black">{currentProduct.name}</span>
       </nav>
@@ -287,19 +255,22 @@ export default function ProductPage() {
           {/* Thumbnails */}
           {thumbnails.length > 0 && (
             <div className="flex gap-2 overflow-x-auto">
-              {thumbnails.map((img: ProductImage, index: number) => {
+              {thumbnails.map((img: any, index: number) => {
+                // Handle both new ProductImage format and legacy {publicUrl, url} format
                 const imgUrl = img.publicUrl || img.url || ''
                 return (
                   <button
                     key={img.id || index}
                     onClick={() => handleImageClick(imgUrl)}
                     className={`w-20 h-24 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
-                      mainImage === imgUrl
-                        ? 'border-black'
-                        : 'border-transparent hover:border-gray-300'
+                      mainImage === imgUrl ? 'border-black' : 'border-transparent hover:border-gray-300'
                     }`}
                   >
-                    <img src={imgUrl} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                    <img
+                      src={imgUrl}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
                   </button>
                 )
               })}
@@ -321,31 +292,42 @@ export default function ProductPage() {
                 {currentCompareAtPrice.toLocaleString('vi-VN')} ₫
               </span>
             )}
-            {selectedVariant?.salePrice && selectedVariant.salePrice > 0 && (
+            {hasVariantSalePrice && (
               <span className="px-2 py-1 bg-red-sale text-white text-xs uppercase">
                 {t('product.sale')}
               </span>
             )}
           </div>
 
-          {/* Color Selection - Using ColorSelector Component */}
-          <ColorSelector
-            colors={colors}
-            selectedColor={selectedColor}
-            onColorChange={setSelectedColor}
-            availableColors={availableColors}
-            showLabel
-          />
+          {/* Color Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium uppercase tracking-wider mb-3">
+              {t('product.color')}: <span className="text-gray-500 font-normal">{selectedColor || t('product.selectColorFirst')}</span>
+            </label>
+            <div className="flex gap-3">
+              {colors.map((color) => {
+                const isLight = ['#ffffff', '#ffc0cb', '#d4c4a8'].includes(color.hex.toLowerCase())
+                return (
+                  <button
+                    key={color.name}
+                    onClick={() => setSelectedColor(color.name)}
+                    className={`w-8 h-8 rounded-full border-2 ${
+                      isLight ? 'border-gray-300' : 'border-gray-900'
+                    } ${selectedColor === color.name ? 'ring-2 ring-offset-2 ring-black' : ''}`}
+                    style={{ backgroundColor: color.hex }}
+                    title={color.name}
+                  />
+                )
+              })}
+            </div>
+          </div>
 
           {/* Size Selection */}
           <div className="mb-6">
             <label className="block text-sm font-medium uppercase tracking-wider mb-3">
-              {t('product.size')}:{' '}
-              <span className="text-gray-500 font-normal normal-case">
-                {selectedSize || t('product.selectSizeFirst')}
-              </span>
+              {t('product.size')}: <span className="text-gray-500 font-normal">{selectedSize || t('product.selectSize')}</span>
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               {sizes.map((size) => {
                 const isAvailable = availableSizes.has(size)
                 return (
@@ -353,15 +335,13 @@ export default function ProductPage() {
                     key={size}
                     onClick={() => isAvailable && setSelectedSize(size)}
                     disabled={!isAvailable}
-                    className={`
-                      px-4 py-2 border rounded-lg transition-colors min-w-[48px]
-                      ${selectedSize === size
+                    className={`px-4 py-2 border rounded-lg transition-colors ${
+                      selectedSize === size
                         ? 'bg-black text-white border-black'
                         : isAvailable
-                          ? 'border-gray-300 hover:border-gray-400'
-                          : 'border-gray-200 text-gray-300 cursor-not-allowed line-through'
-                      }
-                    `}
+                        ? 'border-gray-300 hover:border-gray-400'
+                        : 'border-gray-200 text-gray-300 cursor-not-allowed line-through'
+                    }`}
                   >
                     {size}
                   </button>
@@ -378,14 +358,14 @@ export default function ProductPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:border-gray-400 transition-colors"
+                className="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center"
               >
                 -
               </button>
               <span className="w-12 text-center">{quantity}</span>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:border-gray-400 transition-colors"
+                className="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center"
               >
                 +
               </button>
@@ -407,9 +387,7 @@ export default function ProductPage() {
                 {t('product.description')}
               </h3>
               <p className="text-gray-600 whitespace-pre-line">
-                {lang === 'en' && currentProduct.descriptionEn
-                  ? currentProduct.descriptionEn
-                  : currentProduct.description}
+                {lang === 'en' && currentProduct.descriptionEn ? currentProduct.descriptionEn : currentProduct.description}
               </p>
             </div>
           )}
@@ -421,9 +399,7 @@ export default function ProductPage() {
                 {t('product.material')}
               </h3>
               <p className="text-gray-600">
-                {lang === 'en' && currentProduct.materialEn
-                  ? currentProduct.materialEn
-                  : currentProduct.material}
+                {lang === 'en' && currentProduct.materialEn ? currentProduct.materialEn : currentProduct.material}
               </p>
             </div>
           )}
@@ -435,9 +411,7 @@ export default function ProductPage() {
                 {t('product.careGuide')}
               </h3>
               <p className="text-gray-600">
-                {lang === 'en' && currentProduct.careGuideEn
-                  ? currentProduct.careGuideEn
-                  : currentProduct.careGuide}
+                {lang === 'en' && currentProduct.careGuideEn ? currentProduct.careGuideEn : currentProduct.careGuide}
               </p>
             </div>
           )}

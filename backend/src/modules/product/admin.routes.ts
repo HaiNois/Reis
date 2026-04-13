@@ -14,9 +14,14 @@ router.post('/:id/restore', authenticate, requireAdmin, productController.restor
 
 // Variants - /api/v1/admin/products/:productId/variants
 router.post('/:productId/variants', authenticate, requireAdmin, productController.createVariant)
-router.patch('/variants/:variantId', authenticate, requireAdmin, productController.updateVariant)
-router.patch('/variants/:variantId/stock', authenticate, requireAdmin, productController.updateVariantStock)
-router.delete('/variants/:variantId', authenticate, requireAdmin, productController.deleteVariant)
+router.patch('/:productId/variants/:variantId', authenticate, requireAdmin, productController.updateVariant)
+router.patch('/:productId/variants/:variantId/stock', authenticate, requireAdmin, productController.updateVariantStock)
+router.delete('/:productId/variants/:variantId', authenticate, requireAdmin, productController.deleteVariant)
+
+// Direct variant routes - /api/v1/admin/variants/:variantId (for direct variant updates)
+router.patch('/variants/:variantId', authenticate, requireAdmin, productController.updateVariantDirect)
+router.patch('/variants/:variantId/stock', authenticate, requireAdmin, productController.updateVariantStockDirect)
+router.delete('/variants/:variantId', authenticate, requireAdmin, productController.deleteVariantDirect)
 
 // Images - /api/v1/admin/products/:productId/images
 router.post('/:productId/images', authenticate, requireAdmin, productController.addImage)

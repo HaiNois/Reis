@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { PayPalButton } from '@/components/ui/paypal-button'
 import api from '@/services/api'
 
 declare global {
@@ -87,10 +88,11 @@ export default function CheckoutPage() {
     ],
   }
 
-  // Load PayPal SDK
+  // Note: PayPal SDK is loaded but we use redirect flow via backend API
+  // SDK loading is kept for potential future SDK button integration
   useEffect(() => {
     if (!paypalClientId) {
-      console.warn('PayPal Client ID not configured')
+      console.warn('PayPal Client ID not configured (VITE_PAYPAL_CLIENT_ID)')
       return
     }
 
@@ -98,12 +100,13 @@ export default function CheckoutPage() {
     script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`
     script.async = true
     script.onload = () => setPaypalReady(true)
+    script.onerror = () => console.warn('Failed to load PayPal SDK')
     document.body.appendChild(script)
 
     return () => {
       document.body.removeChild(script)
     }
-  }, [])
+  }, [paypalClientId])
 
   const createOrder = async (paymentMethodVal: 'COD' | 'PAYPAL') => {
     setLoading(true)
@@ -144,6 +147,13 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate required fields for COD
+    if (!formData.firstName || !formData.lastName || !formData.address || !formData.phone) {
+      alert('Vui lòng điền đầy đủ thông tin giao hàng')
+      return
+    }
+
     await createOrder('COD')
   }
 
@@ -167,7 +177,10 @@ export default function CheckoutPage() {
         shippingFirstName: formData.firstName,
         shippingLastName: formData.lastName,
         shippingPhone: formData.phone,
-        shippingAddress: `${formData.address}, ${formData.ward ? formData.ward + ', ' : ''}${formData.district}, ${formData.city}`,
+        shippingAddress: formData.address,
+        shippingWard: formData.ward || '',
+        shippingDistrict: formData.district || '',
+        shippingProvince: formData.city,
         paymentMethod: 'PAYPAL',
         paymentStatus: 'PENDING',
         subtotal: getTotal(),
@@ -180,7 +193,7 @@ export default function CheckoutPage() {
           variantId: item.variantId,
           productName: item.productName,
           variantName: item.variantName,
-          price: item.price,
+          price: Number(item.price),
           quantity: item.quantity,
         })),
       }
@@ -189,7 +202,7 @@ export default function CheckoutPage() {
       const localOrderId = orderResponse.data.data.id
       const orderNumber = orderResponse.data.data.orderNumber
 
-      // Store orderId for success page
+      // Store orderId for success page - DON'T clear cart yet!
       sessionStorage.setItem('paypalOrderId', localOrderId)
       sessionStorage.setItem('paypalOrderNumber', orderNumber)
 
@@ -252,172 +265,171 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen">
       <div className="bg-white max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-serif font-bold mb-4">Checkout</h1>
+        <h1 className="text-2xl font-serif font-bold mb-6">Checkout</h1>
 
-        <div className="rounded-2xl p-3 lg:p-8">
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column - Form */}
-          <div className="lg:col-span-7 lg:border-r-2 lg:border-black lg:border-solid lg:pr-8 space-y-6">
+          <div className="lg:col-span-7 space-y-4">
             {/* Contact */}
-            {/* Payment Buttons at top */}
-            <div className="space-y-3">
-              {/* PayPal Button */}
-              <button
-                type="button"
-                onClick={handlePayPalClick}
-                disabled={loading}
-                className="w-full h-14 bg-[#0070ba] hover:bg-[#005ea6] text-white font-medium rounded-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-50"
-              >
-                {loading ? (
-                  <span>Đang xử lý...</span>
-                ) : (
-                  <>
-                    <img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-100px.png" alt="PayPal" className="h-6" />
-                    <span>PayPal Checkout</span>
-                  </>
-                )}
-              </button>
-
-              {/* COD Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full h-14 bg-black hover:bg-black/90 text-white font-medium rounded-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-50"
-              >
-                {loading ? (
-                  <span>Processing...</span>
-                ) : (
-                  <span>Pay on Delivery (COD)</span>
-                )}
-              </button>
-            </div>
-
-            {/* OR Divider */}
-            <div className="flex items-center gap-4 py-4">
-              <div className="flex-1 h-px bg-muted-foreground/30" />
-              <span className="text-xs text-muted-foreground uppercase">Or</span>
-              <div className="flex-1 h-px bg-muted-foreground/30" />
-            </div>
-
-            {/* Contact */}
-            <div className="bg-card rounded-xl p-3">
-            <h2 className="text-base font-medium mb-4">Contact</h2>
-            <Input
-              name="email"
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              className="h-12"
-              required
-            />
-          </div>
-
-          {/* Shipping Address */}
-          <div className="bg-card rounded-xl p-3">
-            <h2 className="text-base font-medium mb-4">Shipping Address</h2>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  name="firstName"
-                  placeholder="First Name"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className="h-12"
-                  required
-                />
-                <Input
-                  name="lastName"
-                  placeholder="Last Name"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className="h-12"
-                  required
-                />
-              </div>
+            <div className="bg-card rounded-xl p-5">
+              <h2 className="text-base font-medium mb-4 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-black text-white text-xs flex items-center justify-center">1</span>
+                Contact
+              </h2>
               <Input
-                name="address"
-                placeholder="Address (e.g. 123 Main St)"
-                value={formData.address}
+                name="email"
+                type="email"
+                placeholder="Email"
+                value={formData.email}
                 onChange={handleChange}
                 className="h-12"
-                required
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <Select value={formData.city} onValueChange={(v) => setFormData({ ...formData, city: v, district: '' })}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="City" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cities.map((city) => (
-                      <SelectItem key={city.value} value={city.value}>
-                        {city.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={formData.district} onValueChange={(v) => setFormData({ ...formData, district: v })}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="District" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currentDistricts.map((d) => (
-                      <SelectItem key={d.value} value={d.value}>
-                        {d.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Input
-                name="phone"
-                type="tel"
-                placeholder="Phone number"
-                value={formData.phone}
-                onChange={handleChange}
-                className="h-12"
-                required
               />
             </div>
-          </div>
 
-          {/* Delivery */}
-          <div className="bg-card rounded-xl p-3">
-            <h2 className="text-base font-medium mb-4">Shipping Method</h2>
-            <div className="border rounded-lg p-4 flex items-center justify-between">
-              <div>
-                <p className="font-medium">Standard Delivery</p>
-                <p className="text-sm text-muted-foreground">Delivery in 3-5 days</p>
+            {/* Shipping Address */}
+            <div className="bg-card rounded-xl p-5">
+              <h2 className="text-base font-medium mb-4 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-black text-white text-xs flex items-center justify-center">2</span>
+                Shipping Address
+              </h2>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    name="firstName"
+                    placeholder="First Name"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    className="h-12"
+                  />
+                  <Input
+                    name="lastName"
+                    placeholder="Last Name"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    className="h-12"
+                  />
+                </div>
+                <Input
+                  name="address"
+                  placeholder="Address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="h-12"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <Select value={formData.city} onValueChange={(v) => setFormData({ ...formData, city: v, district: '' })}>
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="City" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cities.map((city) => (
+                        <SelectItem key={city.value} value={city.value}>
+                          {city.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={formData.district} onValueChange={(v) => setFormData({ ...formData, district: v })}>
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="District" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currentDistricts.map((d) => (
+                        <SelectItem key={d.value} value={d.value}>
+                          {d.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Input
+                  name="phone"
+                  type="tel"
+                  placeholder="Phone number"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="h-12"
+                />
               </div>
-              <p className="font-medium">Free</p>
             </div>
-          </div>
+
+            {/* Shipping Method */}
+            <div className="bg-card rounded-xl p-5">
+              <h2 className="text-base font-medium mb-4 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-black text-white text-xs flex items-center justify-center">3</span>
+                Shipping Method
+              </h2>
+              <div className="border-2 border-black rounded-lg p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium">Standard Delivery</p>
+                    <p className="text-sm text-muted-foreground">Delivery in 3-5 days</p>
+                  </div>
+                </div>
+                <p className="font-medium">Free</p>
+              </div>
+            </div>
+
+            {/* Payment - Bottom */}
+            <div className="bg-card rounded-xl p-5">
+              <h2 className="text-base font-medium mb-4 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-black text-white text-xs flex items-center justify-center">4</span>
+                Payment
+              </h2>
+              <div className="space-y-3">
+                <PayPalButton
+                  onClick={handlePayPalClick}
+                  loading={loading}
+                  disabled={loading}
+                />
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-14 bg-black hover:bg-black/90 text-white font-medium rounded-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-50"
+                >
+                  {loading ? (
+                    <span>Processing...</span>
+                  ) : (
+                    <span>Thanh toán khi nhận hàng (COD)</span>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Right Column - Order Summary */}
           <div className="lg:col-span-5">
-            <div className="bg-card rounded-xl p-3 sticky top-4">
+            <div className="bg-card rounded-xl p-5 lg:sticky lg:top-4">
               <h2 className="text-base font-medium mb-4">Your Order</h2>
 
               {/* Items */}
-              <div className="space-y-4 mb-6">
+              <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto">
                 {items.map((item) => (
-                  <div key={item.variantId} className="flex gap-4">
-                    <div className="w-20 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                  <div key={item.variantId} className="flex gap-3">
+                    <div className="w-16 h-20 bg-muted rounded-lg overflow-hidden flex-shrink-0 relative">
                       {item.image && item.image !== '/images/products/placeholder.jpg' ? (
                         <img src={item.image} alt={item.productName} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                         </div>
                       )}
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-black text-white text-xs rounded-full flex items-center justify-center">
+                        {item.quantity}
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{item.productName}</p>
                       <p className="text-xs text-muted-foreground">{item.variantName}</p>
-                      <p className="text-sm font-medium mt-1">{item.quantity} x {item.price.toLocaleString('vi-VN')} ₫</p>
+                      <p className="text-sm font-medium mt-1">{item.price.toLocaleString('vi-VN')} ₫</p>
                     </div>
                   </div>
                 ))}
@@ -431,13 +443,9 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping</span>
-                  <span>{shipping === 0 ? 'Free' : shipping.toLocaleString('vi-VN') + ' ₫'}</span>
+                  <span className="text-green-600 font-medium">Free</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tax</span>
-                  <span>{tax.toLocaleString('vi-VN')} ₫</span>
-                </div>
-                <div className="flex justify-between font-medium text-lg pt-2 border-t">
+                <div className="flex justify-between font-bold text-lg pt-2 border-t">
                   <span>Total</span>
                   <span>{total.toLocaleString('vi-VN')} ₫</span>
                 </div>
@@ -446,7 +454,6 @@ export default function CheckoutPage() {
           </div>
         </form>
       </div>
-    </div>
     </div>
   )
 }

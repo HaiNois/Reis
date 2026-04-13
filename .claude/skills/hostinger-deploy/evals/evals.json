@@ -1,0 +1,23 @@
+{
+  "skill_name": "hostinger-deploy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Help me deploy my Node.js backend to Hostinger VPS. I have SSH access and Node.js is installed on the server.",
+      "expected_output": "Step-by-step SSH commands to deploy backend, setup PM2, configure environment variables, and start the API server",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I bought Hostinger cloud hosting. Guide me to deploy both the React frontend and Node.js backend. I want SSL enabled too.",
+      "expected_output": "Complete deployment guide including Nginx setup, reverse proxy configuration, and SSL certificate installation",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "My website is deployed on Hostinger but getting CORS errors. The frontend is at yourdomain.com and API is at api.yourdomain.com. Help me fix this.",
+      "expected_output": "CORS configuration fix for Nginx proxy, backend CORS settings update, environment variable changes",
+      "files": []
+    }
+  ]
+}

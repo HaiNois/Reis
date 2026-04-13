@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { productApi, categoryApi, getMainImageUrl, FALLBACK_IMAGE } from '../../services/productApi'
+import { productApi, categoryApi, FALLBACK_IMAGE } from '../../services/productApi'
 
 interface ProductData {
   id: string

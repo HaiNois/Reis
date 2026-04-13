@@ -241,6 +241,11 @@ export class ProductController {
     })
   })
 
+  // Direct variant routes (without productId prefix)
+  updateVariantDirect = this.updateVariant
+  updateVariantStockDirect = this.updateVariantStock
+  deleteVariantDirect = this.deleteVariant
+
   // ==================== ADMIN IMAGES ====================
 
   addImage = asyncHandler(async (req, res) => {
