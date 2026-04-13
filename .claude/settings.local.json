@@ -6,7 +6,8 @@
       "Bash(npm:*)",
       "Bash(node:*)",
       "Bash(docker:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "mcp__ide__getDiagnostics"
     ]
   },
   "hooks": {

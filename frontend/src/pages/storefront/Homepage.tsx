@@ -529,7 +529,7 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
   const config = section.configJson as { collectionIds?: string[]; collectionId?: string } | undefined
   const collectionIds = config?.collectionIds || (config?.collectionId ? [config.collectionId] : [])
 
-  const items = section.items?.filter((i: any) => i.type === 'MEDIA_TILE' || i.type === 'COLLECTION') || []
+  const items = section.items?.filter((i: any) => i.itemType === 'MEDIA_TILE' || i.itemType === 'COLLECTION') || []
   const [collectionProducts, setCollectionProducts] = useState<any[]>([])
 
   useEffect(() => {
@@ -607,13 +607,13 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
                   className="pl-4 basis-full md:basis-1/2 lg:basis-1/3"
                 >
                   <Link
-                    to={item.ctaUrl || '#'}
+                    to={item.itemType === 'COLLECTION' && !item.ctaUrl ? `/collections/${item.metaJson?.collectionSlug || item.metaJson?.slug || ''}` : (item.ctaUrl || '#')}
                     target={item.linkTarget === 'BLANK' ? '_blank' : '_self'}
                     className="media-tile group relative block overflow-hidden aspect-[4/5] rounded-sm"
                   >
                     {/* Image with enhanced zoom */}
                     <img
-                      src={item.image || item.mediaUrl || '/images/products/placeholder.jpg'}
+                      src={item.mediaUrl || '/images/products/placeholder.jpg'}
                       alt={item.title}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -633,9 +633,9 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
                           {item.subtitle}
                         </p>
                       )}
-                      {item.cta && (
+                      {item.ctaLabel && (
                         <span className="text-white text-sm mt-3 underline opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
-                          {item.cta}
+                          {item.ctaLabel}
                         </span>
                       )}
                     </div>

@@ -32,7 +32,6 @@ export function HeroSection({
   mobileImageUrl,
   eyebrow,
   eyebrowEn,
-  overlayStyle = 'gradient',
   textAlign = 'center',
 }: HeroSectionProps) {
   const { i18n } = useTranslation()

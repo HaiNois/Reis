@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ColumnDef } from '@tanstack/react-table'
 import { productApi, categoryApi, Product, ProductVariant, Category } from '@/services/productApi'
@@ -9,11 +9,23 @@ import { DataTable } from '@/components/ui/data-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useConfirm } from '@/components/providers/confirm-provider'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Pencil, Trash2, Plus } from 'lucide-react'
+import { Pencil, Trash2, Plus, Search, Image as ImageIcon } from 'lucide-react'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { SizePicker } from '@/components/ui/size-picker'
 
@@ -35,24 +47,37 @@ const productColumns = (
 ): ColumnDef<Product>[] => [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: () => <div className="font-semibold">{t('admin.productName')}</div>,
     cell: ({ row }) => (
-      <div>
-        <div className="font-medium">{row.original.name}</div>
-        <div className="text-sm text-muted-foreground">{row.original.slug}</div>
+      <div className="flex items-center gap-3">
+        {row.original.image ? (
+          <img
+            src={row.original.image}
+            alt={row.original.name}
+            className="w-10 h-10 object-cover rounded border"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded border bg-gray-100 flex items-center justify-center">
+            <ImageIcon className="w-4 h-4 text-gray-400" />
+          </div>
+        )}
+        <div>
+          <div className="font-medium">{row.original.name}</div>
+          <div className="text-sm text-muted-foreground">{row.original.slug}</div>
+        </div>
       </div>
     ),
   },
   {
     accessorKey: 'price',
-    header: 'Price',
+    header: () => <div className="font-semibold">{t('product.price')}</div>,
     cell: ({ row }) => (
       <span className="font-medium">{Number(row.original.price).toLocaleString('vi-VN')} ₫</span>
     ),
   },
   {
     accessorKey: 'status',
-    header: 'Status',
+    header: () => <div className="font-semibold">{t('admin.productStatus')}</div>,
     cell: ({ row }) => {
       const status = row.original.status
       return (
@@ -65,21 +90,35 @@ const productColumns = (
           status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
           ''
         }>
-          {status}
+          {status === 'ACTIVE' ? t('admin.productActive') :
+           status === 'DRAFT' ? t('admin.productDraft') :
+           t('admin.productArchived')}
         </Badge>
       )
     },
   },
   {
-    accessorKey: 'variants',
-    header: 'Variants',
+    accessorKey: 'category',
+    header: () => <div className="font-semibold">{t('admin.productCategory')}</div>,
     cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <span>{row.original.variants?.length || 0}</span>
+      <span className="text-sm text-muted-foreground">
+        {row.original.category?.name || t('admin.productNoCategory')}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'variants',
+    header: () => <div className="font-semibold text-center">{t('admin.productVariants')}</div>,
+    cell: ({ row }) => (
+      <div className="flex items-center justify-center gap-2">
+        <span className="bg-gray-100 px-2 py-1 rounded text-sm font-medium">
+          {row.original.variants?.length || 0}
+        </span>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => openVariantModal(row.original)}
+          title={t('admin.productVariants')}
         >
           <Pencil className="h-3 w-3" />
         </Button>
@@ -88,7 +127,7 @@ const productColumns = (
   },
   {
     id: 'actions',
-    header: () => <div className="text-right">Actions</div>,
+    header: () => <div className="text-right font-semibold">{t('admin.productActions')}</div>,
     cell: ({ row }) => (
       <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={() => openEdit(row.original)}>
@@ -110,10 +149,11 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState<Category[]>([])
-  const [showModal, setShowModal] = useState(false)
+  const [showProductDialog, setShowProductDialog] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [showVariantModal, setShowVariantModal] = useState(false)
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -136,6 +176,17 @@ export default function ProductsPage() {
     salePrice: 0,
     quantity: 0,
   })
+
+  // Filtered products based on search
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return products
+    const query = searchQuery.toLowerCase()
+    return products.filter(p =>
+      p.name.toLowerCase().includes(query) ||
+      p.slug.toLowerCase().includes(query) ||
+      p.category?.name?.toLowerCase().includes(query)
+    )
+  }, [products, searchQuery])
 
   // Auto-generate SKU when size or color changes
   useEffect(() => {
@@ -191,12 +242,12 @@ export default function ProductsPage() {
       }
       if (editingProduct) {
         await productApi.updateProduct(editingProduct.id, payload)
-        showToast.success('Product updated successfully')
+        showToast.success(t('admin.productSaved') || 'Product updated successfully')
       } else {
         await productApi.createProduct(payload)
-        showToast.success('Product created successfully')
+        showToast.success(t('admin.productSaved') || 'Product created successfully')
       }
-      setShowModal(false)
+      setShowProductDialog(false)
       setEditingProduct(null)
       setFormData({
         name: '',
@@ -219,10 +270,10 @@ export default function ProductsPage() {
   const handleDelete = async (id: string) => {
     const confirmed = await confirm({
       type: 'warning',
-      title: 'Delete Product',
-      description: 'Are you sure you want to delete this product? This action cannot be undone.',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: t('common.delete'),
+      description: t('admin.confirmDelete'),
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
     })
     if (!confirmed) return
     try {
@@ -248,11 +299,20 @@ export default function ProductsPage() {
       image: product.image || '',
       categoryId: product.categoryId || '',
     })
-    setShowModal(true)
+    setShowProductDialog(true)
   }
 
   const openVariantModal = (product: Product) => {
     setEditingProduct(product)
+    setEditingVariant(null)
+    setVariantForm({
+      sku: '',
+      size: '',
+      color: '',
+      price: product.price,
+      salePrice: 0,
+      quantity: 0,
+    })
     setShowVariantModal(true)
   }
 
@@ -293,43 +353,78 @@ export default function ProductsPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-2xl font-bold">{t('admin.products')}</CardTitle>
-          <Button onClick={() => { resetForm(); setShowModal(true) }}>
+          <Button onClick={() => { resetForm(); setShowProductDialog(true) }}>
             <Plus className="h-4 w-4 mr-2" />
             {t('admin.addProduct')}
           </Button>
         </CardHeader>
         <CardContent>
+          {/* Search Bar */}
+          <div className="mb-4 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder={t('admin.searchPlaceholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 max-w-sm"
+            />
+          </div>
+
+          {/* Stats */}
+          <div className="flex gap-4 mb-4 text-sm">
+            <span className="text-muted-foreground">
+              {filteredProducts.length} / {products.length} {t('admin.products').toLowerCase()}
+            </span>
+          </div>
+
           <DataTable
             columns={productColumns(t, openEdit, handleDelete, openVariantModal)}
-            data={products}
+            data={filteredProducts}
             pageSize={10}
-            onRowDoubleClick={(product) => openEdit(product as Product)}
           />
         </CardContent>
       </Card>
 
-      {/* Modal */}
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      {/* Product Dialog */}
+      <Dialog open={showProductDialog} onOpenChange={setShowProductDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingProduct ? t('admin.editProduct') : t('admin.addProduct')}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            {/* Image Preview */}
+            {formData.image && (
+              <div className="mb-4">
+                <Label>{t('admin.productImages')}</Label>
+                <div className="mt-2 border rounded-lg p-2 bg-gray-50">
+                  <img
+                    src={formData.image}
+                    alt="Preview"
+                    className="w-full h-48 object-contain rounded"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">{t('admin.productName')}</Label>
                 <Input
                   id="name"
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    name: e.target.value,
+                    slug: e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+                  })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="slug">Slug</Label>
+                <Label htmlFor="slug">{t('admin.slug')}</Label>
                 <Input
                   id="slug"
                   type="text"
@@ -341,18 +436,18 @@ export default function ProductsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t('admin.description')}</Label>
               <textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-input rounded-lg bg-background text-sm focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Images</Label>
+              <Label>{t('admin.productImages')}</Label>
               <ImageUpload
                 value={formData.image}
                 onChange={(url) => setFormData({ ...formData, image: url })}
@@ -363,7 +458,7 @@ export default function ProductsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">Price (VND)</Label>
+                <Label htmlFor="price">{t('product.price')} (VND)</Label>
                 <Input
                   id="price"
                   type="number"
@@ -373,7 +468,7 @@ export default function ProductsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="compareAtPrice">Compare Price</Label>
+                <Label htmlFor="compareAtPrice">{t('admin.productCompareAtPrice')}</Label>
                 <Input
                   id="compareAtPrice"
                   type="number"
@@ -385,7 +480,7 @@ export default function ProductsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="material">Material</Label>
+                <Label htmlFor="material">{t('admin.productMaterial')}</Label>
                 <Input
                   id="material"
                   type="text"
@@ -394,47 +489,51 @@ export default function ProductsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <select
-                  id="status"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="ACTIVE">Active</option>
-                  <option value="DRAFT">Draft</option>
-                  <option value="ARCHIVED">Archived</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <select
-                  id="category"
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">No Category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
+                <Label htmlFor="status">{t('admin.productStatus')}</Label>
+                <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v as any })}>
+                  <SelectTrigger id="status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">{t('admin.productActive')}</SelectItem>
+                    <SelectItem value="DRAFT">{t('admin.productDraft')}</SelectItem>
+                    <SelectItem value="ARCHIVED">{t('admin.productArchived')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="careGuide">Care Guide</Label>
+              <Label htmlFor="category">{t('admin.productCategory')}</Label>
+              <Select value={formData.categoryId || ''} onValueChange={(v) => setFormData({ ...formData, categoryId: v || '' })}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder={t('admin.productNoCategory')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.length === 0 ? (
+                    <SelectItem value="none" disabled>{t('admin.productNoCategory')}</SelectItem>
+                  ) : (
+                    categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="careGuide">{t('admin.productCareGuide')}</Label>
               <textarea
                 id="careGuide"
                 value={formData.careGuide}
                 onChange={(e) => setFormData({ ...formData, careGuide: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-input rounded-lg bg-background text-sm focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" type="button" onClick={() => setShowModal(false)}>
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" type="button" onClick={() => setShowProductDialog(false)}>
                 {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={!isFormValid}>
@@ -450,16 +549,18 @@ export default function ProductsPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Manage Variants - {editingProduct?.name}
+              {editingVariant ? t('admin.variantEdit') : t('admin.variantAdd')} - {editingProduct?.name}
             </DialogTitle>
           </DialogHeader>
 
-          {/* Add Variant Form */}
-          <div className="border rounded-lg p-4 mb-4">
-            <h4 className="font-medium mb-3">{editingVariant ? 'Edit Variant' : 'Add New Variant'}</h4>
+          {/* Add/Edit Variant Form */}
+          <div className="border rounded-lg p-4 mb-4 mt-4">
+            <h4 className="font-medium mb-3">
+              {editingVariant ? t('admin.variantEdit') : t('admin.variantAdd')}
+            </h4>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="sku">SKU</Label>
+                <Label htmlFor="sku">{t('admin.variantSku')}</Label>
                 <Input
                   id="sku"
                   value={variantForm.sku}
@@ -468,19 +569,21 @@ export default function ProductsPage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="variantColor">{t('admin.variantColor')}</Label>
                 <ColorPicker
                   value={variantForm.color}
                   onChange={(color) => setVariantForm({ ...variantForm, color })}
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="variantSize">{t('admin.variantSize')}</Label>
                 <SizePicker
                   value={variantForm.size}
                   onChange={(size) => setVariantForm({ ...variantForm, size })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="variantPrice">Price (VND)</Label>
+                <Label htmlFor="variantPrice">{t('admin.variantPrice')} (VND)</Label>
                 <Input
                   id="variantPrice"
                   type="number"
@@ -489,7 +592,7 @@ export default function ProductsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="variantSalePrice">Sale Price (VND)</Label>
+                <Label htmlFor="variantSalePrice">{t('admin.variantSalePrice')} (VND)</Label>
                 <Input
                   id="variantSalePrice"
                   type="number"
@@ -499,7 +602,7 @@ export default function ProductsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
+                <Label htmlFor="quantity">{t('admin.variantQuantity')}</Label>
                 <Input
                   id="quantity"
                   type="number"
@@ -517,7 +620,7 @@ export default function ProductsPage() {
                   setVariantForm({ sku: '', size: '', color: '', price: editingProduct?.price || 0, salePrice: 0, quantity: 0 })
                 }}
               >
-                Clear
+                {t('admin.variantClear')}
               </Button>
               <Button
                 type="button"
@@ -527,7 +630,6 @@ export default function ProductsPage() {
                     return
                   }
                   try {
-                    // Use form data including price and salePrice
                     const variantData = {
                       sku: variantForm.sku,
                       size: variantForm.size,
@@ -538,10 +640,10 @@ export default function ProductsPage() {
                     }
                     if (editingVariant) {
                       await productApi.updateVariant(editingVariant.id, variantData)
-                      showToast.success('Variant updated')
+                      showToast.success(t('admin.variantSaved') || 'Variant updated')
                     } else {
                       await productApi.createVariant(editingProduct.id, variantData)
-                      showToast.success('Variant created')
+                      showToast.success(t('admin.variantSaved') || 'Variant created')
                     }
                     setVariantForm({ sku: '', size: '', color: '', price: editingProduct?.price || 0, salePrice: 0, quantity: 0 })
                     setEditingVariant(null)
@@ -551,30 +653,30 @@ export default function ProductsPage() {
                   }
                 }}
               >
-                {editingVariant ? 'Update' : 'Add'} Variant
+                {editingVariant ? t('common.save') : t('admin.variantAdd')}
               </Button>
             </div>
           </div>
 
           {/* Variants List */}
           <div>
-            <h4 className="font-medium mb-2">Current Variants</h4>
+            <h4 className="font-medium mb-2">{t('admin.variantCurrent')}</h4>
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-3 py-2 text-left">SKU</th>
-                    <th className="px-3 py-2 text-left">Color</th>
-                    <th className="px-3 py-2 text-left">Size</th>
-                    <th className="px-3 py-2 text-right">Price</th>
-                    <th className="px-3 py-2 text-right">Sale Price</th>
-                    <th className="px-3 py-2 text-right">Qty</th>
-                    <th className="px-3 py-2 text-center">Actions</th>
+                    <th className="px-3 py-2 text-left font-semibold">{t('admin.variantSku')}</th>
+                    <th className="px-3 py-2 text-left font-semibold">{t('admin.variantColor')}</th>
+                    <th className="px-3 py-2 text-left font-semibold">{t('admin.variantSize')}</th>
+                    <th className="px-3 py-2 text-right font-semibold">{t('admin.variantPrice')}</th>
+                    <th className="px-3 py-2 text-right font-semibold">{t('admin.variantSalePrice')}</th>
+                    <th className="px-3 py-2 text-right font-semibold">{t('admin.variantQuantity')}</th>
+                    <th className="px-3 py-2 text-center font-semibold">{t('admin.productActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {editingProduct?.variants?.map((variant) => (
-                    <tr key={variant.id} className="border-t">
+                    <tr key={variant.id} className="border-t hover:bg-gray-50">
                       <td className="px-3 py-2">{variant.sku}</td>
                       <td className="px-3 py-2">{variant.color}</td>
                       <td className="px-3 py-2">{variant.size}</td>
@@ -610,15 +712,15 @@ export default function ProductsPage() {
                             onClick={async () => {
                               const confirmed = await confirm({
                                 type: 'warning',
-                                title: 'Delete Variant',
-                                description: 'Are you sure you want to delete this variant?',
-                                confirmText: 'Delete',
-                                cancelText: 'Cancel',
+                                title: t('admin.variantDelete') || 'Delete Variant',
+                                description: t('admin.confirmDelete'),
+                                confirmText: t('common.delete'),
+                                cancelText: t('common.cancel'),
                               })
                               if (confirmed) {
                                 try {
                                   await productApi.deleteVariant(variant.id)
-                                  showToast.success('Variant deleted')
+                                  showToast.success(t('admin.variantDeleted') || 'Variant deleted')
                                   fetchProducts()
                                 } catch (error) {
                                   handleApiError(error, 'Failed to delete variant')
@@ -634,8 +736,8 @@ export default function ProductsPage() {
                   ))}
                   {(!editingProduct?.variants || editingProduct.variants.length === 0) && (
                     <tr>
-                      <td colSpan={6} className="px-3 py-4 text-center text-gray-500">
-                        No variants yet
+                      <td colSpan={7} className="px-3 py-8 text-center text-gray-500">
+                        {t('admin.variantNone')}
                       </td>
                     </tr>
                   )}

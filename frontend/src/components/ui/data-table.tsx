@@ -2,6 +2,7 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   useReactTable,
   SortingState,
   ColumnFiltersState,
@@ -10,12 +11,15 @@ import {
 import { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search } from "lucide-react"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   pageSize?: number
+  enableSearch?: boolean
+  searchPlaceholder?: string
   onRowClick?: (row: TData) => void
   onRowDoubleClick?: (row: TData) => void
 }
@@ -24,11 +28,14 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   pageSize = 10,
+  enableSearch = false,
+  searchPlaceholder = "Search...",
   onRowClick,
   onRowDoubleClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [globalFilter, setGlobalFilter] = useState("")
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: pageSize,
@@ -38,18 +45,32 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: enableSearch ? getFilteredRowModel() : undefined,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
     state: {
       sorting,
       columnFilters,
+      globalFilter,
       pagination,
     },
   })
 
   return (
     <div className="space-y-4">
+      {enableSearch && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder={searchPlaceholder}
+            value={globalFilter ?? ""}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-9 max-w-sm"
+          />
+        </div>
+      )}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -100,8 +121,17 @@ export function DataTable<TData, TValue>({
 
       <div className="flex items-center justify-between px-2">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+          {table.getFilteredSelectedRowModel().rows.length > 0 && (
+            <span>
+              {table.getFilteredSelectedRowModel().rows.length} of{" "}
+              {table.getFilteredRowModel().rows.length} row(s) selected.
+            </span>
+          )}
+          {table.getFilteredRowModel().rows.length > 0 && (
+            <span className="ml-2">
+              Showing {table.getFilteredRowModel().rows.length} result(s)
+            </span>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <Button
