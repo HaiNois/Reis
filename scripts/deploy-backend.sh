@@ -49,9 +49,10 @@ echo -e "${GREEN}✓ Code pulled successfully${NC}"
 # ============================================================================
 # Step 3: Install dependencies
 # ============================================================================
-echo -e "${YELLOW}📦 Installing dependencies...${NC}"
+echo -e "${YELLOW}📦 Installing dependencies (including devDependencies for build)...${NC}"
 cd backend  # Since root directory is backend in the deployment
-npm install --production
+npm install
+# NOTE: We install ALL deps (not --production) because we need TypeScript, Prisma CLI for build & migrations
 echo -e "${GREEN}✓ Dependencies installed${NC}"
 
 # ============================================================================

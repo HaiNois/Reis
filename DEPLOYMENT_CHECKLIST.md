@@ -92,9 +92,10 @@
 ## PHASE 3: Backend Deployment
 
 ### Install Dependencies & Build
-- [ ] Install npm packages:
+- [ ] Install npm packages (ALL dependencies including devDeps for TypeScript build):
   ```bash
-  npm install --production
+  npm install
+  # IMPORTANT: Don't use --production flag, we need tsc, prisma CLI
   ```
 
 - [ ] Build TypeScript:

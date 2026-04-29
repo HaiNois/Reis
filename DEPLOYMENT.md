@@ -58,10 +58,11 @@ git clone https://github.com/YOUR_GITHUB_REPO.git .
 ### 2.1 Install Dependencies & Build
 
 ```bash
-cd ~/public_html/api
+cd ~/public_html/api/backend
 
-# Install
-npm install --production
+# Install ALL dependencies (including TypeScript, Prisma CLI)
+# DON'T use --production flag, we need devDependencies for build
+npm install
 
 # Build TypeScript
 npm run build

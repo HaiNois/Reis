@@ -33,8 +33,8 @@ git clone https://github.com/YOUR_REPO.git .
 ```bash
 cd ~/public_html/api/backend
 
-# Install & build
-npm install --production
+# Install & build (install ALL deps, not just --production)
+npm install
 npm run build
 
 # Setup env (cPanel Node.js App → Environment Variables)
