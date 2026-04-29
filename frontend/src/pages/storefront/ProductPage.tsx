@@ -255,6 +255,7 @@ export default function ProductPage() {
     addItem({
       variantId: selectedVariant.id,
       productId: currentProduct.id,
+      productSlug: currentProduct.slug,
       productName: currentProduct.name,
       variantName: `${selectedSize} - ${selectedColor}`,
       price: Number(currentPrice),

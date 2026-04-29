@@ -184,6 +184,7 @@ export function QuickAddDialog({
       addItem({
         variantId: selectedVariant.id,
         productId: product.id,
+        productSlug: product.slug,
         productName: productName,
         variantName: `${selectedColor} / ${selectedSize}`,
         price: Number(currentPrice),

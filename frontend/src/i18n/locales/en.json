@@ -115,6 +115,7 @@
   },
   "cart": {
     "title": "Shopping Cart",
+    "subtitleCount": "{{count}} item(s) in your cart",
     "empty": "Your cart is empty",
     "emptyDesc": "You don't have any items in your cart",
     "continueShopping": "Continue Shopping",
@@ -124,7 +125,17 @@
     "checkout": "Checkout",
     "remove": "Remove",
     "updateQuantity": "Update quantity",
-    "summary": "Summary"
+    "summary": "Summary",
+    "lineTotal": "Line total",
+    "stockLeft": "{{count}} left in stock",
+    "stockReached": "Maximum stock reached",
+    "decrease": "Decrease",
+    "increase": "Increase",
+    "clearCart": "Clear cart",
+    "confirmClearTitle": "Empty your cart?",
+    "confirmClearDesc": "All items will be removed. This action cannot be undone.",
+    "secureCheckout": "Secure checkout — SSL encrypted",
+    "freeShippingNote": "Free shipping nationwide"
   },
   "checkout": {
     "title": "Checkout",

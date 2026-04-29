@@ -115,6 +115,7 @@
   },
   "cart": {
     "title": "Giỏ hàng",
+    "subtitleCount": "{{count}} sản phẩm trong giỏ",
     "empty": "Giỏ hàng trống",
     "emptyDesc": "Bạn chưa có sản phẩm nào trong giỏ hàng",
     "continueShopping": "Tiếp tục mua sắm",
@@ -124,7 +125,17 @@
     "checkout": "Thanh toán",
     "remove": "Xóa",
     "updateQuantity": "Cập nhật số lượng",
-    "summary": "Tóm tắt"
+    "summary": "Tóm tắt",
+    "lineTotal": "Thành tiền",
+    "stockLeft": "Còn {{count}} trong kho",
+    "stockReached": "Đã đạt số lượng tồn kho",
+    "decrease": "Giảm",
+    "increase": "Tăng",
+    "clearCart": "Xoá giỏ hàng",
+    "confirmClearTitle": "Xoá toàn bộ giỏ hàng?",
+    "confirmClearDesc": "Tất cả sản phẩm trong giỏ sẽ bị xoá. Hành động này không thể hoàn tác.",
+    "secureCheckout": "Thanh toán an toàn — mã hoá SSL",
+    "freeShippingNote": "Miễn phí vận chuyển toàn quốc"
   },
   "checkout": {
     "title": "Thanh toán",

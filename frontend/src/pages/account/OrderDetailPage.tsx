@@ -136,6 +136,7 @@ export default function OrderDetailPage() {
           {
             variantId: item.variantId,
             productId: stockInfo?.productId ?? item.productId ?? '',
+            productSlug: item.productSlug,
             productName: item.productName,
             variantName: item.variantName,
             price: Number(item.unitPrice),
