@@ -70,6 +70,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+app.get('/api/v1/health', (_req, res) => {
+  res.json({ success: true, data: { status: 'ok', timestamp: new Date().toISOString() } })
+})
+
 // API routes
 app.use('/api/v1/auth', authRoutes)
 app.use('/api/v1/products', productRoutes)
