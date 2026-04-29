@@ -257,7 +257,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
 - [ ] Or via curl:
   ```bash
-  curl https://api.reis-sg.online/api/v1/health
+  curl https://api.reis-sg.online/health
   # Expected: 200 OK with JSON response
   ```
 
@@ -433,7 +433,7 @@ pm2 logs reis-api
 
 ### CORS errors in browser
 - Check `CORS_ORIGIN` in backend env matches frontend domain
-- Verify API is accessible: `curl https://api.reis-sg.online/api/v1/health`
+- Verify API is accessible: `curl https://api.reis-sg.online/health`
 
 ### Database connection failed
 ```bash

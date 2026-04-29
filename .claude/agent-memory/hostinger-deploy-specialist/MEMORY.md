@@ -1,0 +1,3 @@
+- [Reis Hostinger setup architecture](project_reis_hostinger_setup.md) — Path-based deploy reis-sg.online, FE in public_html, BE Node.js App at ~/public_html/api/backend, Node 20.x, PM2 reis-api, MySQL 8.0.
+- [Hostinger Business Node.js App uses Passenger](reference_hostinger_passenger.md) — cPanel Node.js Selector uses Passenger which ignores PORT env var; Passenger has its own socket.
+- [Backend dist entrypoint path](project_reis_backend_entrypoint.md) — `dist/index.js` is the PM2 entry (not `dist/server.js`); start with `pm2 start dist/index.js --name reis-api` from backend/ dir.

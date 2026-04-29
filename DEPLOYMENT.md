@@ -133,7 +133,7 @@ pm2 status
 pm2 logs reis-api
 
 # Test endpoint
-curl http://localhost:3000/api/v1/health
+curl http://localhost:3000/health
 ```
 
 ---
@@ -250,7 +250,7 @@ CORS_ORIGIN=https://api.reis-sg.online
 ssh u123@server.com
 
 # Test local endpoint
-curl http://localhost:3000/api/v1/health
+curl http://localhost:3000/health
 
 # Test from outside (via subdomain or reverse proxy)
 curl https://api.reis-sg.online/api/v1/health
