@@ -58,8 +58,8 @@ const ALLOWED_IMAGE_TYPES = [
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
 function validateFile(buffer: Buffer, contentType: string): void {
-  if (buffer.size > MAX_FILE_SIZE) {
-    throw new Error(`File too large. Maximum size is 5MB, got ${buffer.size} bytes`)
+  if (buffer.length > MAX_FILE_SIZE) {
+    throw new Error(`File too large. Maximum size is 5MB, got ${buffer.length} bytes`)
   }
 
   if (!ALLOWED_IMAGE_TYPES.includes(contentType)) {
@@ -94,7 +94,7 @@ export async function uploadImage(
     return {
       objectKey: `products/placeholder-${Date.now()}.jpg`,
       imageUrl: `https://placeholder.com/products/placeholder.jpg`,
-      size: buffer.size,
+      size: buffer.length,
       contentType: 'image/jpeg',
     }
   }
@@ -107,7 +107,7 @@ export async function uploadImage(
   const objectKey = generateObjectKey(filename)
 
   try {
-    logger.info(`Uploading to R2: bucket=${r2Config.bucketName}, key=${objectKey}, size=${buffer.size}`)
+    logger.info(`Uploading to R2: bucket=${r2Config.bucketName}, key=${objectKey}, size=${buffer.length}`)
 
     const command = new PutObjectCommand({
       Bucket: r2Config.bucketName,
@@ -124,7 +124,7 @@ export async function uploadImage(
     return {
       objectKey,
       imageUrl,
-      size: buffer.size,
+      size: buffer.length,
       contentType,
     }
   } catch (error: any) {

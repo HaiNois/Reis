@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import prisma from '../../config/database.js'
 import { NotFoundError, BadRequestError } from '../../shared/utils/error-handler.js'
 import type {
@@ -119,7 +120,7 @@ export class HomepageService {
         subtitle: data.subtitle || null,
         description: data.description || null,
         layout: data.layout || null,
-        configJson: data.configJson || null,
+        configJson: (data.configJson as Prisma.InputJsonValue) ?? Prisma.JsonNull,
         isActive: data.isActive ?? true,
         sortOrder: data.sortOrder ?? 0,
         startsAt: data.startsAt ? new Date(data.startsAt) : null,
@@ -150,7 +151,7 @@ export class HomepageService {
         ...(data.subtitle !== undefined && { subtitle: data.subtitle }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.layout !== undefined && { layout: data.layout }),
-        ...(data.configJson !== undefined && { configJson: data.configJson }),
+        ...(data.configJson !== undefined && { configJson: data.configJson as Prisma.InputJsonValue }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
         ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
         ...(data.startsAt !== undefined && { startsAt: data.startsAt ? new Date(data.startsAt) : null }),
@@ -211,7 +212,7 @@ export class HomepageService {
         ctaLabel: data.ctaLabel || null,
         ctaUrl: data.ctaUrl || null,
         linkTarget: data.linkTarget || 'SELF',
-        metaJson: data.metaJson || null,
+        metaJson: (data.metaJson as Prisma.InputJsonValue) ?? Prisma.JsonNull,
         isActive: data.isActive ?? true,
         sortOrder: data.sortOrder ?? (maxOrder._max.sortOrder ?? 0) + 1,
       },
@@ -243,7 +244,7 @@ export class HomepageService {
         ...(data.ctaLabel !== undefined && { ctaLabel: data.ctaLabel }),
         ...(data.ctaUrl !== undefined && { ctaUrl: data.ctaUrl || null }),
         ...(data.linkTarget && { linkTarget: data.linkTarget }),
-        ...(data.metaJson !== undefined && { metaJson: data.metaJson }),
+        ...(data.metaJson !== undefined && { metaJson: data.metaJson as Prisma.InputJsonValue }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
         ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
       },
@@ -410,51 +411,8 @@ export class HomepageService {
       orderBy: { sortOrder: 'asc' },
     })
 
-    return sections.map((section) => ({
-      id: section.id,
-      sectionType: section.sectionType,
-      layout: section.layout,
-      title: section.title,
-      subtitle: section.subtitle,
-      items: section.items.map((item) => {
-        // COLLECTION type: use collection directly, avoid duplicate fields
-        if (item.itemType === 'COLLECTION' && item.collection) {
-          return {
-            id: item.id,
-            type: item.itemType,
-            collection: {
-              id: item.collection.id,
-              name: item.collection.name,
-              nameEn: item.collection.nameEn,
-              slug: item.collection.slug,
-              description: item.collection.description,
-              image: item.collection.image,
-              isActive: item.collection.isActive,
-            },
-          }
-        }
-
-        // Other types (BANNER, MEDIA_TILE, PRODUCT): include all fields
-        return {
-          id: item.id,
-          type: item.itemType,
-          title: item.title,
-          subtitle: item.subtitle,
-          image: item.mediaUrl,
-          mobileImage: item.mobileMediaUrl,
-          mediaType: item.mediaType,
-          cta: item.ctaLabel,
-          ctaUrl: item.ctaUrl,
-        }
-      }),
-      products: section.products.map((sp) => ({
-        id: sp.product.id,
-        name: sp.product.name,
-        slug: sp.product.slug,
-        price: sp.product.price,
-        image: sp.product.image || null,
-      })),
-    }))
+    const enrichedSections = await enrichCategoryShowcaseSections(sections)
+    return enrichedSections.map((section) => mapSectionToStorefront(section))
   }
 
   async getSectionBySlug(slug: string) {
@@ -489,51 +447,248 @@ export class HomepageService {
       throw new NotFoundError('HomepageSection')
     }
 
+    const [enriched] = await enrichCategoryShowcaseSections([section])
+    return mapSectionToStorefront(enriched)
+  }
+}
+
+// ==================== CATEGORY_SHOWCASE ENRICHMENT ====================
+
+// Type alias for the metaJson shape used in CATEGORY_SHOWCASE items.
+type CategoryItemMeta = { categoryId?: string; titleEn?: string; ctaLabelEn?: string } | null
+
+// Shape of the enriched category data attached to each item.
+interface CategoryData {
+  id: string
+  name: string
+  nameEn: string | null
+  slug: string
+}
+
+/**
+ * Batch-enriches CATEGORY_SHOWCASE items with:
+ *  - _previewImage: auto-fetched from first active product in their category
+ *    (skipped when admin-supplied mediaUrl is present).
+ *  - _category: { id, name, nameEn, slug } of the linked category.
+ *
+ * Both fields are consumed by mapSectionToStorefront and exposed to the frontend.
+ * Operates on any array of sections that share the Prisma findMany shape above —
+ * used by both getActiveHomepage() and getSectionBySlug().
+ */
+async function enrichCategoryShowcaseSections<
+  TSection extends {
+    sectionType: string
+    items: Array<{
+      mediaUrl: string | null
+      metaJson: unknown
+      [key: string]: unknown
+    }>
+    [key: string]: unknown
+  },
+>(sections: TSection[]): Promise<(TSection & { items: (TSection['items'][number] & { _previewImage?: string | null; _category?: CategoryData | null })[] })[]> {
+  // Collect unique categoryIds across all CATEGORY_SHOWCASE sections
+  const allCategoryIds = new Set<string>()
+
+  for (const section of sections) {
+    if (section.sectionType !== 'CATEGORY_SHOWCASE') continue
+    for (const item of section.items) {
+      const meta = item.metaJson as CategoryItemMeta
+      const categoryId = meta?.categoryId
+      if (categoryId) allCategoryIds.add(categoryId)
+    }
+  }
+
+  if (allCategoryIds.size === 0) {
+    // Nothing to enrich — return sections unchanged with typed cast
+    return sections as (TSection & { items: (TSection['items'][number] & { _previewImage?: string | null; _category?: CategoryData | null })[] })[]
+  }
+
+  // Batch fetch 1: category metadata (id, name, nameEn, slug)
+  const categoryDataMap = new Map<string, CategoryData>()
+  const categoriesFromDb = await prisma.category.findMany({
+    where: { id: { in: [...allCategoryIds] } },
+    select: { id: true, name: true, nameEn: true, slug: true },
+  })
+  for (const cat of categoriesFromDb) {
+    categoryDataMap.set(cat.id, { id: cat.id, name: cat.name, nameEn: cat.nameEn, slug: cat.slug })
+  }
+
+  // Batch fetch 2: product preview images for items that have no admin mediaUrl override
+  const categoryIdsNeedingImage = new Set<string>()
+  for (const section of sections) {
+    if (section.sectionType !== 'CATEGORY_SHOWCASE') continue
+    for (const item of section.items) {
+      if (item.mediaUrl) continue // Admin override — skip image lookup
+      const meta = item.metaJson as CategoryItemMeta
+      const categoryId = meta?.categoryId
+      if (categoryId) categoryIdsNeedingImage.add(categoryId)
+    }
+  }
+
+  const categoryImageMap = new Map<string, string>()
+
+  if (categoryIdsNeedingImage.size > 0) {
+    const products = await prisma.product.findMany({
+      where: {
+        categoryId: { in: [...categoryIdsNeedingImage] },
+        status: 'ACTIVE',
+        isDelete: false,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        categoryId: true,
+        image: true,
+        images: {
+          take: 1,
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+          select: { publicUrl: true, url: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    // Keep the newest product image per categoryId (sorted by createdAt desc above)
+    for (const p of products) {
+      if (!p.categoryId) continue
+      if (categoryImageMap.has(p.categoryId)) continue // Already have one for this category
+
+      const img = p.images[0]
+      // product.image may be stored as a JSON array string (legacy) — parse and
+      // extract the first element when that is the case.
+      const rawImage = p.image ?? null
+      const parsedImage = (() => {
+        if (!rawImage) return null
+        if (rawImage.startsWith('[')) {
+          try {
+            const arr = JSON.parse(rawImage) as unknown[]
+            return typeof arr[0] === 'string' ? arr[0] : null
+          } catch {
+            return rawImage
+          }
+        }
+        return rawImage
+      })()
+      const imageUrl = img?.publicUrl ?? img?.url ?? parsedImage
+      if (imageUrl) {
+        categoryImageMap.set(p.categoryId, imageUrl)
+      }
+    }
+  }
+
+  // Attach _previewImage and _category to each CATEGORY_SHOWCASE item
+  return sections.map((section) => {
+    if (section.sectionType !== 'CATEGORY_SHOWCASE') {
+      return section as TSection & { items: (TSection['items'][number] & { _previewImage?: string | null; _category?: CategoryData | null })[] }
+    }
+
+    const enrichedItems = section.items.map((item) => {
+      const meta = item.metaJson as CategoryItemMeta
+      const categoryId = meta?.categoryId
+
+      const _category = categoryId ? (categoryDataMap.get(categoryId) ?? null) : null
+
+      // Admin override takes priority for image
+      if (item.mediaUrl) return { ...item, _previewImage: item.mediaUrl, _category }
+
+      const _previewImage = categoryId ? (categoryImageMap.get(categoryId) ?? null) : null
+      return { ...item, _previewImage, _category }
+    })
+
+    return { ...section, items: enrichedItems }
+  })
+}
+
+// ==================== STOREFRONT MAPPER ====================
+
+/**
+ * Storefront mapper: shapes section + items + products into the response
+ * consumed by the frontend. Single source of truth for both list and detail
+ * endpoints — keep them in sync.
+ *
+ * CATEGORY_SHOWCASE sections use a richer item shape that the frontend
+ * category-showcase-section component expects.
+ */
+function mapSectionToStorefront(section: any) {
+  // CATEGORY_SHOWCASE: richer item shape for category tiles.
+  // Exposes `category` (not `collection`) — each tile links to /products?category=<slug>.
+  if (section.sectionType === 'CATEGORY_SHOWCASE') {
     return {
       id: section.id,
       sectionType: section.sectionType,
       layout: section.layout,
       title: section.title,
       subtitle: section.subtitle,
-      items: section.items.map((item) => {
-        // COLLECTION type: use collection directly, avoid duplicate fields
-        if (item.itemType === 'COLLECTION' && item.collection) {
-          return {
-            id: item.id,
-            type: item.itemType,
-            collection: {
-              id: item.collection.id,
-              name: item.collection.name,
-              nameEn: item.collection.nameEn,
-              slug: item.collection.slug,
-              description: item.collection.description,
-              image: item.collection.image,
-              isActive: item.collection.isActive,
-            },
-          }
-        }
+      items: section.items.map((item: any) => ({
+        id: item.id,
+        type: item.itemType,
+        title: item.title,             // eyebrow VI
+        subtitle: item.subtitle,       // eyebrow EN
+        description: item.description, // title override VI
+        mediaUrl: item.mediaUrl,       // admin override image
+        previewImage: item._previewImage ?? null, // auto-fetched fallback from category product
+        ctaLabel: item.ctaLabel,
+        ctaUrl: item.ctaUrl,
+        isActive: item.isActive,
+        metaJson: item.metaJson,       // { titleEn, ctaLabelEn, categoryId }
+        // category links to /products?category=<slug> — NOT /collections/<slug>
+        category: item._category
+          ? {
+              id: item._category.id,
+              name: item._category.name,
+              nameEn: item._category.nameEn,
+              slug: item._category.slug,
+            }
+          : null,
+      })),
+      products: [],
+    }
+  }
 
-        // Other types (BANNER, MEDIA_TILE, PRODUCT): include all fields
+  // All other section types: existing generic shape
+  return {
+    id: section.id,
+    sectionType: section.sectionType,
+    layout: section.layout,
+    title: section.title,
+    subtitle: section.subtitle,
+    items: section.items.map((item: any) => {
+      if (item.itemType === 'COLLECTION' && item.collection) {
         return {
           id: item.id,
           type: item.itemType,
-          title: item.title,
-          subtitle: item.subtitle,
-          image: item.mediaUrl,
-          mobileImage: item.mobileMediaUrl,
-          mediaType: item.mediaType,
-          cta: item.ctaLabel,
-          ctaUrl: item.ctaUrl,
+          collection: {
+            id: item.collection.id,
+            name: item.collection.name,
+            nameEn: item.collection.nameEn,
+            slug: item.collection.slug,
+            description: item.collection.description,
+            image: item.collection.image,
+            isActive: item.collection.isActive,
+          },
         }
-      }),
-      products: section.products.map((sp) => ({
-        id: sp.product.id,
-        name: sp.product.name,
-        slug: sp.product.slug,
-        price: sp.product.price,
-        image: sp.product.image || null,
-      })),
-    }
+      }
+
+      // BANNER, MEDIA_TILE, PRODUCT, ANNOUNCEMENT
+      return {
+        id: item.id,
+        type: item.itemType,
+        title: item.title,
+        subtitle: item.subtitle,
+        image: item.mediaUrl,
+        mobileImage: item.mobileMediaUrl,
+        mediaType: item.mediaType,
+        cta: item.ctaLabel,
+        ctaUrl: item.ctaUrl,
+      }
+    }),
+    products: section.products.map((sp: any) => ({
+      id: sp.product.id,
+      name: sp.product.name,
+      slug: sp.product.slug,
+      price: sp.product.price,
+      image: sp.product.image || null,
+    })),
   }
 }
 

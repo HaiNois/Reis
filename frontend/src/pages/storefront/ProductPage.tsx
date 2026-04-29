@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/stores/cartStore'
+import { usePrice } from '@/hooks/usePrice'
 import { productApi, getMainImageUrl, FALLBACK_IMAGE } from '@/services/productApi'
 import { showToast } from '@/utils/toast'
 import { Spinner } from '@/components/ui/spinner'
@@ -38,6 +39,7 @@ export default function ProductPage() {
   const imageContainerRef = useRef<HTMLDivElement>(null)
 
   const addItem = useCartStore((state) => state.addItem)
+  const fmt = usePrice()
   const lang = i18n.language
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false)
   const [addToCartState, setAddToCartState] = useState<'idle' | 'loading' | 'success'>('idle')
@@ -209,6 +211,13 @@ export default function ProductPage() {
   const currentCompareAtPrice = hasVariantSalePrice
     ? (selectedVariant!.price > selectedVariant!.salePrice! ? selectedVariant!.price : undefined)
     : undefined
+  // priceUsd companion (only available when a variant is selected)
+  const currentPriceUsd: number | null = hasVariantSalePrice
+    ? null // sale price has no USD equivalent in DB; let formatter fallback
+    : (selectedVariant?.priceUsd ?? currentProduct?.priceUsd ?? null)
+  const currentCompareAtPriceUsd: number | null = hasVariantSalePrice
+    ? (selectedVariant?.priceUsd ?? null)
+    : null
 
   const handleImageClick = (imageUrl: string) => {
     setMainImage(imageUrl)
@@ -249,6 +258,7 @@ export default function ProductPage() {
       productName: currentProduct.name,
       variantName: `${selectedSize} - ${selectedColor}`,
       price: Number(currentPrice),
+      priceUsd: currentPriceUsd ?? null,
       image: mainImage,
       maxQuantity: selectedVariant.quantity,
     }, quantity)
@@ -335,10 +345,10 @@ export default function ProductPage() {
 
           {/* Price */}
           <div className="flex items-center gap-3 mb-6">
-            <span className="text-xl md:text-2xl">{currentPrice.toLocaleString('vi-VN')} ₫</span>
+            <span className="text-xl md:text-2xl">{fmt(currentPrice, currentPriceUsd)}</span>
             {currentCompareAtPrice && (
               <span className="text-lg text-gray-400 line-through">
-                {currentCompareAtPrice.toLocaleString('vi-VN')} ₫
+                {fmt(currentCompareAtPrice, currentCompareAtPriceUsd)}
               </span>
             )}
             {hasVariantSalePrice && (
@@ -488,7 +498,7 @@ export default function ProductPage() {
         <div className="container-custom py-3 flex items-center gap-4">
           <div className="flex-1">
             <p className="font-medium">{currentProduct?.name}</p>
-            <p className="text-lg font-bold">{currentPrice.toLocaleString('vi-VN')} ₫</p>
+            <p className="text-lg font-bold">{fmt(currentPrice, currentPriceUsd)}</p>
           </div>
           <button
             onClick={handleAddToCart}

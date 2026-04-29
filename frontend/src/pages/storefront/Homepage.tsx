@@ -21,8 +21,12 @@ import useEmblaCarousel from 'embla-carousel-react'
 import { useScaleParallax } from '@/hooks/useParallax'
 import { useScrollReveal } from '@/hooks/useScrollReveal'
 import { useProductVariants } from '@/hooks/useProductVariants'
+import { useScrollYRaf } from '@/hooks/useScrollYRaf'
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import CategoryShowcaseSection from '@/components/homepage/category-showcase-section'
+import EmptyHomepage from '@/components/homepage/EmptyHomepage'
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -163,8 +167,8 @@ function SubCarousel({
 
 // ==================== SECTION RENDERERS ====================
 
-// Announcement Bar
-function AnnouncementBarSection({ section }: { section: HomepageSection }) {
+// Announcement Bar (Phase 2)
+/* function AnnouncementBarSection({ section }: { section: HomepageSection }) {
   const title = section.title
   const ctaUrl = section.items?.[0]?.ctaUrl || '#'
   const linkTarget = section.items?.[0]?.linkTarget === 'BLANK' ? '_blank' : '_self'
@@ -184,9 +188,9 @@ function AnnouncementBarSection({ section }: { section: HomepageSection }) {
       </div>
     </div>
   )
-}
+} */
 
-// Hero Section - IMPROVED: Full viewport, staggered entrance, scroll indicator
+// Hero Section - parallax via RAF hook + accessibility (prefers-reduced-motion)
 function HeroSection({ section }: { section: HomepageSection }) {
   const { i18n } = useTranslation()
   const lang = i18n.language || 'vi'
@@ -195,8 +199,11 @@ function HeroSection({ section }: { section: HomepageSection }) {
   const config = section.configJson as
     | { overlayStyle?: string; textAlign?: string }
     | undefined
+
+  // Use shared RAF-throttled scrollY — no duplicate event listeners
+  const scrollY = useScrollYRaf()
+  const prefersReducedMotion = usePrefersReducedMotion()
   const scale = useScaleParallax({ minScale: 1, maxScale: 1.05, maxScroll: 500 })
-  const [scrollY, setScrollY] = useState(0)
 
   const heroItem = section.items?.[0]
   const imageUrl = heroItem?.mediaUrl || '/images/banners/banner.jpg'
@@ -206,12 +213,6 @@ function HeroSection({ section }: { section: HomepageSection }) {
   const ctaUrl = heroItem?.ctaUrl || '/products'
 
   const textAlign = config?.textAlign || 'center'
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY)
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   const eyebrowDelay = '0ms'
   const titleDelay = '150ms'
@@ -226,29 +227,38 @@ function HeroSection({ section }: { section: HomepageSection }) {
   const handleScrollDown = () => {
     window.scrollTo({
       top: window.innerHeight,
-      behavior: 'smooth'
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
     })
   }
+
+  // Parallax transform: disabled when user prefers reduced motion
+  const parallaxStyle = prefersReducedMotion
+    ? {}
+    : {
+        transform: `translateY(${scrollY * 0.3}px) scale(${scale})`,
+      }
 
   return (
     <section className="relative bg-gray-100 overflow-hidden">
       <div
         className="relative w-full will-change-transform min-h-[80vh] md:min-h-screen"
-        style={{
-          transform: `translateY(${scrollY * 0.3}px) scale(${scale})`,
-        }}
+        style={parallaxStyle}
       >
         <picture>
           <source media="(max-width: 768px)" srcSet={mobileImageUrl} />
+          {/* fetchPriority + eager loading for LCP optimisation */}
           <img
             src={imageUrl}
             alt={title || 'Hero'}
             className="w-full h-full object-cover"
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
           />
         </picture>
 
-        {/* Gradient overlay: editorial dark-to-transparent */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        {/* Gradient overlay: reduced opacity — preserves background tone while keeping text contrast */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
 
         {/* Content with staggered entrance */}
         <div className={cn(
@@ -256,10 +266,10 @@ function HeroSection({ section }: { section: HomepageSection }) {
           textPositionClasses[textAlign as keyof typeof textPositionClasses] || textPositionClasses.center
         )}>
           <div className="container-custom">
-            {/* Eyebrow */}
+            {/* Eyebrow — italic tracking uppercase */}
             {subtitle && (
               <p
-                className="text-white/80 uppercase tracking-[0.2em] text-sm md:text-base mb-4 md:mb-6"
+                className="text-white/80 italic uppercase tracking-[0.2em] text-sm md:text-base mb-4 md:mb-6 font-serif"
                 style={{
                   animation: `fadeInUp 0.8s ease-out ${eyebrowDelay} both`,
                 }}
@@ -268,9 +278,9 @@ function HeroSection({ section }: { section: HomepageSection }) {
               </p>
             )}
 
-            {/* Title */}
+            {/* Title — serif light, larger */}
             <h1
-              className="text-4xl md:text-6xl lg:text-7xl font-display font-bold tracking-wide text-white mb-4 md:mb-6"
+              className="text-4xl md:text-6xl lg:text-7xl font-serif font-light tracking-wide text-white mb-4 md:mb-6"
               style={{
                 animation: `fadeInUp 0.8s ease-out ${titleDelay} both`,
               }}
@@ -291,13 +301,15 @@ function HeroSection({ section }: { section: HomepageSection }) {
           </div>
         </div>
 
-        {/* Scroll indicator - animated bounce */}
+        {/* Scroll indicator - animated bounce (disabled when prefers-reduced-motion) */}
         <button
           onClick={handleScrollDown}
           className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/70 hover:text-white transition-colors cursor-pointer"
-          style={{
-            animation: `fadeInUp 0.8s ease-out 600ms both, bounce 2s ease-in-out 1s infinite`,
-          }}
+          style={
+            prefersReducedMotion
+              ? { animation: `fadeInUp 0.8s ease-out 600ms both` }
+              : { animation: `fadeInUp 0.8s ease-out 600ms both, bounce 2s ease-in-out 1s infinite` }
+          }
           aria-label={lang === 'en' ? 'Scroll down' : 'Cuộn xuống'}
         >
           <ChevronDown className="w-8 h-8" />
@@ -329,7 +341,7 @@ function HeroSection({ section }: { section: HomepageSection }) {
   )
 }
 
-// Product Rail - Enhanced with sizes on hover
+// Product Rail - Enhanced heading hierarchy: eyebrow + serif light h2
 function ProductRailSection({ section }: { section: HomepageSection }) {
   const { i18n } = useTranslation()
   const lang = i18n.language || 'vi'
@@ -340,27 +352,34 @@ function ProductRailSection({ section }: { section: HomepageSection }) {
   const { ref: headerRef, isVisible: headerVisible } = useScrollReveal<HTMLDivElement>()
 
   return (
-    <section className="py-8 md:py-12 border-t">
+    // id for deep-linking from admin CMS: /products#section-{slug}
+    <section id={`section-${section.slug}`} className="py-8 md:py-12">
       <div className="container-custom">
         {/* Header */}
         <div
           ref={headerRef}
           className={cn(
-            'flex items-center justify-between mb-12 transition-all duration-700',
+            'flex items-end justify-between mb-12 transition-all duration-700',
             headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           )}
         >
           <div>
-            <h2 className="text-2xl md:text-3xl font-display font-bold tracking-wide">
+            {/* Eyebrow: subtitle rendered as italic tracking label above heading */}
+            {subtitle && (
+              <p className="text-gray-500 italic uppercase tracking-[0.2em] text-xs md:text-sm mb-2 font-serif">
+                {subtitle}
+              </p>
+            )}
+            {/* Heading: serif light for editorial differentiation */}
+            <h2 className="text-3xl md:text-4xl font-serif font-light tracking-wide">
               {title || (lang === 'en' ? 'Products' : 'Sản phẩm')}
             </h2>
-            {subtitle && <p className="text-gray-500 mt-2">{subtitle}</p>}
           </div>
           <Link
             to="/products"
-            className="text-sm font-medium tracking-wide hover:text-gray-600 transition-colors"
+            className="text-sm font-medium tracking-wide hover:text-gray-600 transition-colors shrink-0 mb-1"
           >
-            {lang === 'en' ? 'View all products' : 'Xem tất cả Product'}
+            {lang === 'en' ? 'View all products' : 'Xem tất cả'}
           </Link>
         </div>
 
@@ -521,11 +540,12 @@ function ProductCardItem({
   )
 }
 
-// Media Tiles - IMPROVED: Enhanced hover effects and animations
+// Media Tiles - heading hierarchy: eyebrow + serif light h2
 function MediaTilesSection({ section }: { section: HomepageSection }) {
   const { i18n } = useTranslation()
   const lang = i18n.language || 'vi'
   const title = section.title
+  const subtitle = section.subtitle
   const config = section.configJson as { collectionIds?: string[]; collectionId?: string } | undefined
   const collectionIds = config?.collectionIds || (config?.collectionId ? [config.collectionId] : [])
 
@@ -542,30 +562,31 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
 
   const displayProducts = collectionProducts.length > 0 ? collectionProducts : []
 
+  // Shared heading block for the section
+  const SectionHeading = title ? (
+    <div className="flex items-end justify-between mb-12">
+      <div>
+        {subtitle && (
+          <p className="text-gray-500 italic uppercase tracking-[0.2em] text-xs md:text-sm mb-2 font-serif">
+            {subtitle}
+          </p>
+        )}
+        <h2 className="text-3xl md:text-4xl font-serif font-light tracking-wide">{title}</h2>
+      </div>
+    </div>
+  ) : null
+
   return (
-    <section className="py-8 md:py-12">
+    // id for deep-linking from admin CMS
+    <section id={`section-${section.slug}`} className="py-8 md:py-12">
       <div className="container-custom">
         {displayProducts.length > 0 ? (
           <Carousel
-            opts={{
-              align: 'start',
-              loop: true,
-            }}
-            plugins={[
-              AutoPlay({
-                delay: 5000,
-                stopOnInteraction: false,
-              }),
-            ]}
+            opts={{ align: 'start', loop: true }}
+            plugins={[AutoPlay({ delay: 5000, stopOnInteraction: false })]}
             className="w-full"
           >
-            {title && (
-              <div className="flex items-center justify-between mb-12">
-                <h2 className="text-2xl md:text-3xl font-display font-bold tracking-wide">
-                  {title}
-                </h2>
-              </div>
-            )}
+            {SectionHeading}
             <CarouselContent className="-ml-4">
               {displayProducts.map((product: any, index: number) => (
                 <CarouselItem
@@ -581,31 +602,17 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
           </Carousel>
         ) : items.length > 0 ? (
           <Carousel
-            opts={{
-              align: 'start',
-              loop: true,
-            }}
-            plugins={[
-              AutoPlay({
-                delay: 5000,
-                stopOnInteraction: false,
-              }),
-            ]}
+            opts={{ align: 'start', loop: true }}
+            plugins={[AutoPlay({ delay: 5000, stopOnInteraction: false })]}
             className="w-full"
           >
-            {title && (
-              <div className="flex items-center justify-between mb-12">
-                <h2 className="text-2xl md:text-3xl font-display font-bold tracking-wide">
-                  {title}
-                </h2>
-              </div>
-            )}
+            {SectionHeading}
             <CarouselContent className="-ml-4">
               {items.map((item: any) => {
                 // For COLLECTION type, use collection data directly
                 const isCollection = item.type === 'COLLECTION'
-                const title = isCollection ? item.collection?.name : item.title
-                const subtitle = isCollection ? item.collection?.description : item.subtitle
+                const itemTitle = isCollection ? item.collection?.name : item.title
+                const itemSubtitle = isCollection ? item.collection?.description : item.subtitle
                 const image = isCollection ? item.collection?.image : item.image
                 const linkUrl = isCollection
                   ? `/collections/${item.collection?.slug || ''}`
@@ -624,7 +631,7 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
                       {/* Image with enhanced zoom */}
                       <img
                         src={image || '/images/products/placeholder.jpg'}
-                        alt={title || ''}
+                        alt={itemTitle || ''}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
 
@@ -633,14 +640,14 @@ function MediaTilesSection({ section }: { section: HomepageSection }) {
 
                       {/* Content with slide-up animation */}
                       <div className="absolute inset-0 flex flex-col justify-end p-6 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                        {title && (
+                        {itemTitle && (
                           <h3 className="text-white text-xl font-bold translate-y-0 group-hover:translate-y-0 transition-transform duration-300">
-                            {title}
+                            {itemTitle}
                           </h3>
                         )}
-                        {subtitle && (
+                        {itemSubtitle && (
                           <p className="text-white/80 text-sm mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
-                            {subtitle}
+                            {itemSubtitle}
                           </p>
                         )}
                         {item.cta && (
@@ -701,18 +708,32 @@ function MediaProductCard({ product, lang, index }: { product: any; lang: string
   )
 }
 
-// Section Renderer
+// Section Renderer — wraps in <section> with deep-link id
 function SectionRenderer({ section }: { section: HomepageSection }) {
   switch (section.sectionType) {
-    case 'ANNOUNCEMENT_BAR':
-      return <AnnouncementBarSection key={section.id} section={section} />
     case 'HERO':
-      return <HeroSection key={section.id} section={section} />
+      // Hero is a full-bleed section — id wrapper lives inside HeroSection itself
+      return (
+        <section id={`section-${section.slug}`} key={section.id}>
+          <HeroSection section={section} />
+        </section>
+      )
     case 'PRODUCT_RAIL':
+      // ProductRailSection sets its own id internally
       return <ProductRailSection key={section.id} section={section} />
     case 'MEDIA_TILES':
+      // MediaTilesSection sets its own id internally
       return <MediaTilesSection key={section.id} section={section} />
+    case 'CATEGORY_SHOWCASE':
+      return (
+        <section id={`section-${section.slug}`} key={section.id}>
+          <CategoryShowcaseSection section={section} />
+        </section>
+      )
+    // Legacy / future section types — warn loudly instead of silent null
+    // CATEGORY_QUICK_SHOP, EDITORIAL_LOOKBOOK, NEWSLETTER_SIGNUP: Phase 2
     default:
+      console.warn(`[Homepage] Unsupported section type: ${section.sectionType}`)
       return null
   }
 }
@@ -724,11 +745,17 @@ function FeedbackSection({ feedback }: { feedback: any[] }) {
   const lang = i18n.language || 'vi'
 
   return (
-    <section className="py-8 md:py-12 bg-gray-50">
+    <section className="py-8 md:py-12 bg-stone-50">
       <div className="container-custom">
-        <h2 className="text-2xl md:text-3xl font-display font-bold tracking-wide text-center mb-12">
-          {lang === 'en' ? 'Customer Reviews' : 'Đánh Giá Khách Hàng'}
-        </h2>
+        {/* Eyebrow above heading */}
+        <div className="text-center mb-12">
+          <p className="text-gray-500 italic uppercase tracking-[0.2em] text-xs mb-3 font-serif">
+            {lang === 'en' ? 'Testimonials' : 'Phản Hồi'}
+          </p>
+          <h2 className="text-3xl md:text-4xl font-serif font-light tracking-wide">
+            {lang === 'en' ? 'Customer Reviews' : 'Đánh Giá Khách Hàng'}
+          </h2>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {feedback.map((fb: any) => (
             <div
@@ -777,21 +804,21 @@ function FeedbackSection({ feedback }: { feedback: any[] }) {
   )
 }
 
-// ==================== BANNER SECTION - IMPROVED ====================
+// ==================== STATIC BANNER SECTION - parallax via RAF hook ====================
 
 function StaticBannerSection() {
   const { i18n } = useTranslation()
   const lang = i18n.language || 'vi'
-  const [leftScroll, setLeftScroll] = useState(0)
 
-  useEffect(() => {
-    const handleScroll = () => setLeftScroll(window.scrollY * 0.2)
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  // Shared RAF-throttled scrollY — no extra event listener
+  const scrollY = useScrollYRaf()
+  const prefersReducedMotion = usePrefersReducedMotion()
+
+  const leftParallax = prefersReducedMotion ? 0 : scrollY * 0.02
+  const innerParallax = prefersReducedMotion ? 0 : scrollY * 0.01
 
   return (
-    <section className="py-12 md:py-16 lg:py-20">
+    <section className="py-8 md:py-12">
       <div className="container-custom">
         {/* Split layout: Left 60% + Right 40% stacked */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
@@ -802,7 +829,7 @@ function StaticBannerSection() {
           >
             <div
               className="relative w-full h-full overflow-hidden will-change-transform"
-              style={{ transform: `translateY(${leftScroll * 0.1}px)` }}
+              style={{ transform: `translateY(${leftParallax}px)` }}
             >
               <img
                 src="/images/products/621561089_17959227669044199_2769149982932536652_n.jpg"
@@ -816,10 +843,10 @@ function StaticBannerSection() {
 
             {/* Content */}
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
-              <p className="text-white/80 text-sm uppercase tracking-[0.2em] mb-2">
+              <p className="text-white/80 italic text-xs uppercase tracking-[0.2em] mb-2 font-serif">
                 {lang === 'en' ? 'New Arrivals' : 'Hàng Mới Về'}
               </p>
-              <h3 className="text-white text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-wide mb-4 md:mb-6">
+              <h3 className="text-white text-2xl md:text-3xl lg:text-4xl font-serif font-light tracking-wide mb-4 md:mb-6">
                 {lang === 'en' ? 'Women Collection' : 'Bộ Sưu Tập Nữ'}
               </h3>
 
@@ -847,7 +874,7 @@ function StaticBannerSection() {
             >
               <div
                 className="relative w-full h-full overflow-hidden will-change-transform"
-                style={{ transform: `translateY(${leftScroll * 0.05}px)` }}
+                style={{ transform: `translateY(${innerParallax}px)` }}
               >
                 <img
                   src="/images/products/621788664_17959227642044199_6141261247981617575_n.jpg"
@@ -858,10 +885,10 @@ function StaticBannerSection() {
               </div>
 
               <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">
-                <p className="text-white/70 text-xs uppercase tracking-[0.15em] mb-1">
+                <p className="text-white/70 italic text-xs uppercase tracking-[0.15em] mb-1 font-serif">
                   {lang === 'en' ? 'Accessories' : 'Phụ Kiện'}
                 </p>
-                <h3 className="text-white text-lg md:text-xl font-display font-bold tracking-wide">
+                <h3 className="text-white text-lg md:text-xl font-serif font-light tracking-wide">
                   {lang === 'en' ? 'Accessorize' : 'Phụ Kiện'}
                 </h3>
               </div>
@@ -876,7 +903,7 @@ function StaticBannerSection() {
               className="relative flex-1 overflow-hidden rounded-lg h-[24vh] md:h-[34vh] group bg-black flex items-center justify-center"
             >
               <div className="text-center p-6">
-                <h3 className="text-white text-xl md:text-2xl font-display font-bold tracking-wide mb-3">
+                <h3 className="text-white text-xl md:text-2xl font-serif font-light tracking-wide mb-3">
                   {lang === 'en' ? 'Explore All' : 'Khám Phá Tất Cả'}
                 </h3>
 
@@ -939,6 +966,12 @@ export default function Homepage() {
     )
   }
 
+  // Empty state: no CMS sections AND no feedback — show editorial placeholder
+  const isEmpty = homepageSections.length === 0 && feedback.length === 0
+  if (isEmpty) {
+    return <EmptyHomepage />
+  }
+
   return (
     <div>
       {/* Dynamic Homepage Sections */}
@@ -946,11 +979,94 @@ export default function Homepage() {
         <SectionRenderer key={section.id} section={section} />
       ))}
 
-      {/* Feedback */}
-      {feedback.length > 0 && <FeedbackSection feedback={feedback} />}
-
-      {/* Static Banner Section */}
-      <StaticBannerSection />
+      {/* Hardcoded Newsletter Section */}
+      <NewsletterSignupSection />
     </div>
+  )
+}
+
+// ==================== NEWSLETTER SIGNUP (HARDCODED) ====================
+
+function NewsletterSignupSection() {
+  const { i18n } = useTranslation()
+  const lang = i18n.language || 'vi'
+  const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.trim()) return
+
+    setIsSubmitting(true)
+    try {
+      // Newsletter subscription logic (Phase 2: integrate with backend)
+      await new Promise(resolve => setTimeout(resolve, 500))
+      setIsSubmitted(true)
+      setEmail('')
+      setTimeout(() => setIsSubmitted(false), 3000)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <section className="py-8 md:py-12 bg-stone-50">
+      <div className="container-custom">
+        <div className="max-w-2xl mx-auto text-center">
+          {/* Eyebrow */}
+          <p className="text-xs font-serif italic text-gray-500 mb-2 uppercase tracking-[0.2em]">
+            {lang === 'en' ? 'Stay Connected' : 'Kết Nối Với Chúng Tôi'}
+          </p>
+
+          {/* Heading */}
+          <h2 className="text-2xl md:text-4xl font-serif font-light text-gray-900 mb-6">
+            {lang === 'en' ? 'Subscribe to Our Newsletter' : 'Đăng Ký Nhận Tin'}
+          </h2>
+
+          {/* Subtitle */}
+          <p className="text-sm md:text-base text-gray-600 mb-8">
+            {lang === 'en'
+              ? 'Be the first to know about new collections, exclusive offers, and style tips.'
+              : 'Nhận thông tin sớm nhất về bộ sưu tập mới, ưu đãi độc quyền và tips phong cách.'}
+          </p>
+
+          {/* Email Input + Submit */}
+          {!isSubmitted ? (
+            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+              <input
+                type="email"
+                placeholder={lang === 'en' ? 'your@email.com' : 'email@của.bạn'}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="flex-1 px-4 py-3 bg-white border border-gray-300 text-gray-900 text-sm focus:outline-none focus:border-gray-900 transition"
+              />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-6 py-3 bg-gray-900 text-white text-sm uppercase font-medium tracking-[0.1em] hover:bg-gray-800 disabled:opacity-50 transition"
+              >
+                {isSubmitting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner size="sm" className="text-white" />
+                  </span>
+                ) : lang === 'en' ? (
+                  'Subscribe'
+                ) : (
+                  'Đăng Ký'
+                )}
+              </button>
+            </form>
+          ) : (
+            <p className="text-sm text-gray-700 font-medium">
+              {lang === 'en'
+                ? '✓ Thanks for subscribing!'
+                : '✓ Cảm ơn bạn đã đăng ký!'}
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
   )
 }

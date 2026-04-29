@@ -82,14 +82,34 @@ export class ProductService {
 
     // Transform response - include full variants for admin but remove null fields
     const transformedProducts = products.map((product) => {
-      // Parse image JSON string into images array
-      let images: string[] = []
-      if (product.image) {
+      // Prefer ProductImage relation. Fall back to legacy `image` JSON field.
+      const relationImages = (product.images || []).map((img) => ({
+        id: img.id,
+        publicUrl: img.publicUrl || img.url || undefined,
+        objectKey: img.objectKey || undefined,
+        url: img.url || undefined,
+        sortOrder: img.sortOrder,
+        isPrimary: img.isPrimary,
+        altText: img.altText || undefined,
+      }))
+
+      let images: Array<{ id: string; publicUrl?: string; objectKey?: string; url?: string; sortOrder?: number; isPrimary?: boolean; altText?: string }> = relationImages
+
+      if (images.length === 0 && product.image) {
+        let legacyUrls: string[] = []
         try {
-          images = JSON.parse(product.image)
+          const parsed = JSON.parse(product.image)
+          legacyUrls = Array.isArray(parsed) ? parsed : [product.image]
         } catch {
-          images = product.image ? [product.image] : []
+          legacyUrls = [product.image]
         }
+        images = legacyUrls.map((url, idx) => ({
+          id: `legacy-${product.id}-${idx}`,
+          publicUrl: url,
+          url,
+          sortOrder: idx,
+          isPrimary: idx === 0,
+        }))
       }
 
       // Only include variants with required fields
@@ -201,32 +221,61 @@ export class ProductService {
 
     // Transform response for optimized payload
     const transformedProducts = products.map((product) => {
-      // Parse image JSON string into images array
-      let images: string[] = []
-      if (product.image) {
+      // Prefer ProductImage relation (R2 uploads). Fall back to legacy `image` JSON field.
+      const relationImages = (product.images || []).map((img) => ({
+        id: img.id,
+        publicUrl: img.publicUrl || img.url || undefined,
+        objectKey: img.objectKey || undefined,
+        url: img.url || undefined,
+        sortOrder: img.sortOrder,
+        isPrimary: img.isPrimary,
+        altText: img.altText || undefined,
+      }))
+
+      let images: Array<{ id: string; publicUrl?: string; objectKey?: string; url?: string; sortOrder?: number; isPrimary?: boolean; altText?: string }> = relationImages
+
+      if (images.length === 0 && product.image) {
+        // Legacy fallback: parse JSON string or treat as single URL
+        let legacyUrls: string[] = []
         try {
-          images = JSON.parse(product.image)
+          const parsed = JSON.parse(product.image)
+          legacyUrls = Array.isArray(parsed) ? parsed : [product.image]
         } catch {
-          images = product.image ? [product.image] : []
+          legacyUrls = [product.image]
         }
+        images = legacyUrls.map((url, idx) => ({
+          id: `legacy-${product.id}-${idx}`,
+          publicUrl: url,
+          url,
+          sortOrder: idx,
+          isPrimary: idx === 0,
+        }))
       }
 
       // Get variant summary
+      const variantsWithUsd = product.variants.filter((v) => v.priceUsd !== null && v.priceUsd !== undefined)
+      const usdValues = variantsWithUsd.map((v) => Number(v.priceUsd))
       const variantSummary = product.variants.length > 0
         ? {
             count: product.variants.length,
             minPrice: Math.min(...product.variants.map((v) => Number(v.price))),
             maxPrice: Math.max(...product.variants.map((v) => Number(v.price))),
+            minPriceUsd: usdValues.length > 0 ? Math.min(...usdValues) : null,
+            maxPriceUsd: usdValues.length > 0 ? Math.max(...usdValues) : null,
             totalStock: product.variants.reduce((sum, v) => sum + v.quantity, 0),
             hasSale: product.variants.some((v) => v.salePrice !== null),
           }
         : null
+
+      // Top-level priceUsd = min variant priceUsd (matches `price` semantics)
+      const priceUsd = usdValues.length > 0 ? Math.min(...usdValues) : null
 
       return {
         id: product.id,
         name: product.name,
         slug: product.slug,
         price: product.price,
+        priceUsd,
         status: product.status,
         isFeatured: product.isFeatured,
         isNewArrival: product.isNewArrival,

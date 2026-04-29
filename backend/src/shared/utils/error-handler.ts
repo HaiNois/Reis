@@ -1,6 +1,6 @@
 import { ZodError } from 'zod'
 import { logger } from '../../config/logger.js'
-import { ApiError } from './api.js'
+import type { ApiError } from '../types/api.js'
 
 export class AppError extends Error {
   public readonly statusCode: number

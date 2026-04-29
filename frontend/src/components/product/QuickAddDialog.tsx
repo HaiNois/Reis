@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/stores/cartStore'
+import { usePrice } from '@/hooks/usePrice'
 import { productApi, ProductVariant, FALLBACK_IMAGE, getImageUrl } from '@/services/productApi'
 import { showToast } from '@/utils/toast'
 import {
@@ -38,6 +39,7 @@ export function QuickAddDialog({
   const { i18n } = useTranslation()
   const lang = i18n.language
   const addItem = useCartStore((state) => state.addItem)
+  const fmt = usePrice()
 
   const [loading, setLoading] = useState(false)
   const [product, setProduct] = useState<any>(null)
@@ -140,9 +142,14 @@ export function QuickAddDialog({
   }, [variants, selectedColor])
 
   // Price based on variant
-  const currentPrice = selectedVariant?.salePrice && selectedVariant?.salePrice > 0
-    ? selectedVariant.salePrice
+  const hasSalePrice = selectedVariant?.salePrice && selectedVariant?.salePrice > 0
+  const currentPrice = hasSalePrice
+    ? selectedVariant!.salePrice!
     : (selectedVariant?.price || basePrice)
+  // priceUsd companion: only meaningful when not on a sale price (DB doesn't store sale USD)
+  const currentPriceUsd: number | null = hasSalePrice
+    ? null
+    : (selectedVariant?.priceUsd ?? null)
 
   // Current image based on color selection
   const currentImage = useMemo(() => {
@@ -180,6 +187,7 @@ export function QuickAddDialog({
         productName: productName,
         variantName: `${selectedColor} / ${selectedSize}`,
         price: Number(currentPrice),
+        priceUsd: currentPriceUsd ?? null,
         image: currentImage,
         maxQuantity: selectedVariant.quantity,
       }, quantity)
@@ -217,7 +225,7 @@ export function QuickAddDialog({
             />
             <div>
               <p className="text-lg font-semibold">
-                {Number(currentPrice).toLocaleString('vi-VN')} ₫
+                {fmt(Number(currentPrice), currentPriceUsd)}
               </p>
               <p className="text-sm text-gray-500">
                 {lang === 'vi' ? 'Đã có sẵn' : 'In stock'}
@@ -285,7 +293,7 @@ export function QuickAddDialog({
               />
               <div>
                 <p className="text-lg font-semibold">
-                  {Number(currentPrice).toLocaleString('vi-VN')} ₫
+                  {fmt(Number(currentPrice), currentPriceUsd)}
                 </p>
                 {selectedVariant && (
                   <p className="text-sm text-gray-500">

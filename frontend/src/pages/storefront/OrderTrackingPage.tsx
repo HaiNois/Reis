@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { orderApi, OrderTrackingInfo } from '../../services/productApi'
+import { usePrice } from '@/hooks/usePrice'
 
 export default function OrderTrackingPage() {
   const { t } = useTranslation()
+  const fmt = usePrice()
   const [labelId, setLabelId] = useState('')
   const [tracking, setTracking] = useState<OrderTrackingInfo | null>(null)
   const [loading, setLoading] = useState(false)
@@ -142,12 +144,12 @@ export default function OrderTrackingPage() {
             <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
               <div>
                 <p className="text-gray-500">Phí vận chuyển</p>
-                <p className="font-medium text-lg">{Number(tracking.money.ship).toLocaleString('vi-VN')} ₫</p>
+                <p className="font-medium text-lg">{fmt(Number(tracking.money.ship))}</p>
               </div>
               {tracking.money.pick > 0 && (
                 <div>
                   <p className="text-gray-500">Thu hộ (COD)</p>
-                  <p className="font-medium text-lg">{Number(tracking.money.pick).toLocaleString('vi-VN')} ₫</p>
+                  <p className="font-medium text-lg">{fmt(Number(tracking.money.pick))}</p>
                 </div>
               )}
             </div>

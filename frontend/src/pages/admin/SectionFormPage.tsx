@@ -1,8 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
-import { homepageSectionApi, HomepageSectionType, HomepageSectionProduct } from '@/services/homepageApi'
-import { productApi, Product, Collection, collectionApi } from '@/services/productApi'
+import {
+  Image as ImageIcon,
+  Shirt,
+  LayoutGrid,
+  FolderTree,
+  Sparkles,
+  Megaphone,
+  type LucideIcon,
+} from 'lucide-react'
+import { homepageSectionApi, HomepageSectionType, HomepageSectionProduct, SyncItemInput, HomepageSectionItem } from '@/services/homepageApi'
+import { productApi, Product, Collection, collectionApi, categoryApi, Category } from '@/services/productApi'
 import { showToast, handleApiError } from '@/utils/toast'
 import { Spinner } from '@/components/ui/spinner'
 import { Input } from '@/components/ui/input'
@@ -13,13 +22,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import CategoryShowcaseItemsEditor from '@/components/admin/CategoryShowcaseItemsEditor'
 
-const SECTION_TYPES: { value: HomepageSectionType; label: string; labelVi: string; icon: string }[] = [
-  { value: 'ANNOUNCEMENT_BAR', label: 'Announcement Bar', labelVi: 'Thanh thông báo', icon: '📢' },
-  { value: 'HERO', label: 'Hero', labelVi: 'Banner chính', icon: '🖼️' },
-  { value: 'PRODUCT_RAIL', label: 'Product Rail', labelVi: 'Danh sách sản phẩm', icon: '👕' },
-  { value: 'MEDIA_TILES', label: 'Media Tiles', labelVi: 'Ô hình ảnh', icon: '🖼️' },
+interface SectionTypeMeta {
+  value: HomepageSectionType
+  label: string
+  labelVi: string
+  Icon: LucideIcon
+  /** Recommended image aspect ratio for this section's primary media. */
+  aspectHint?: { ratio: string; minResolution: string }
+}
+
+const SECTION_TYPES: SectionTypeMeta[] = [
+  { value: 'HERO', label: 'Hero', labelVi: 'Banner chính', Icon: ImageIcon, aspectHint: { ratio: '16:9 (or 21:9)', minResolution: '1920×1080' } },
+  { value: 'PRODUCT_RAIL', label: 'Product Rail', labelVi: 'Danh sách sản phẩm', Icon: Shirt },
+  { value: 'MEDIA_TILES', label: 'Media Tiles', labelVi: 'Ô hình ảnh', Icon: LayoutGrid, aspectHint: { ratio: '4:5', minResolution: '800×1000' } },
+  { value: 'NEW_SEASON_ARRIVALS', label: 'New Arrivals', labelVi: 'Hàng mới về', Icon: Sparkles },
+  { value: 'STATIC_BANNER', label: 'Static Banner', labelVi: 'Banner tĩnh (3 ô)', Icon: Megaphone, aspectHint: { ratio: 'Tile 1: 4:5 · Tiles 2-3: 16:10', minResolution: '1200×1500' } },
+  { value: 'CATEGORY_SHOWCASE', label: 'Category Showcase', labelVi: 'Showcase danh mục', Icon: FolderTree, aspectHint: { ratio: '1:1', minResolution: '600×600' } },
 ]
+
+// Form pattern reuse — each type follows an existing pattern
+const HERO_LIKE: HomepageSectionType[] = ['HERO']
+const PRODUCT_LIKE: HomepageSectionType[] = ['PRODUCT_RAIL', 'NEW_SEASON_ARRIVALS']
+const COLLECTION_LIKE: HomepageSectionType[] = ['MEDIA_TILES']
+// STATIC_BANNER has its own UI: 3 tile editors (category select + image upload each)
 
 // ============ SWITCH COMPONENT ============
 function Switch({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
@@ -47,6 +74,28 @@ function Switch({ checked, onChange, disabled }: { checked: boolean; onChange: (
 
 // ============ PREVIEW SECTION COMPONENT ============
 function PreviewContent({ sectionType, formData }: { sectionType: string; formData: any }) {
+  if (sectionType === 'STATIC_BANNER') {
+    return (
+      <div className="space-y-3">
+        <h3 className="font-bold">{formData.title || 'Static Banner'}</h3>
+        <div className="grid grid-cols-12 gap-3 h-64">
+          <div className="col-span-7 bg-gray-200 rounded-lg flex items-end p-4">
+            <span className="text-xs text-gray-600">Tile 1 (large)</span>
+          </div>
+          <div className="col-span-5 flex flex-col gap-3">
+            <div className="flex-1 bg-gray-200 rounded-lg flex items-end p-3">
+              <span className="text-xs text-gray-600">Tile 2</span>
+            </div>
+            <div className="flex-1 bg-gray-200 rounded-lg flex items-end p-3">
+              <span className="text-xs text-gray-600">Tile 3</span>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500">Pick 3 collections — first becomes the large banner, next 2 become stacked tiles.</p>
+      </div>
+    )
+  }
+
   if (sectionType === 'HERO') {
     return (
       <div className="relative w-full h-64 rounded-lg overflow-hidden bg-gray-100">
@@ -64,14 +113,6 @@ function PreviewContent({ sectionType, formData }: { sectionType: string; formDa
             </span>
           )}
         </div>
-      </div>
-    )
-  }
-
-  if (sectionType === 'ANNOUNCEMENT_BAR') {
-    return (
-      <div className="bg-black text-white text-center py-3 rounded-lg">
-        <p className="text-sm">{formData.title || 'Thông báo'}</p>
       </div>
     )
   }
@@ -126,8 +167,13 @@ export default function SectionFormPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [availableCollections, setAvailableCollections] = useState<Collection[]>([])
+  const [availableCategories, setAvailableCategories] = useState<Category[]>([])
   const [availableProducts, setAvailableProducts] = useState<Product[]>([])
+  // Category Showcase: keep loaded section items so the sub-editor can rehydrate
+  const [categoryShowcaseItems, setCategoryShowcaseItems] = useState<HomepageSectionItem[]>([])
   const [editingItem, setEditingItem] = useState<any>(null)
+  // Map collectionId -> existing item id, used to preserve item ids across syncItems
+  const [collectionItemIdMap, setCollectionItemIdMap] = useState<Record<string, string>>({})
   const [productSearch, setProductSearch] = useState('')
   const [collectionSearch, setCollectionSearch] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -168,6 +214,12 @@ export default function SectionFormPage() {
     ctaUrl: '',
     selectedProductIds: [] as string[],
     selectedCollectionIds: [] as string[],
+    // STATIC_BANNER: 3 tiles, each linking to a category with custom uploaded image
+    staticBannerTiles: [
+      { categoryId: '', mediaUrl: '', itemId: '' },
+      { categoryId: '', mediaUrl: '', itemId: '' },
+      { categoryId: '', mediaUrl: '', itemId: '' },
+    ] as { categoryId: string; mediaUrl: string; itemId: string }[],
   })
 
   // Mark dirty when form changes
@@ -183,16 +235,30 @@ export default function SectionFormPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [collections, products] = await Promise.all([
+        const [collectionsResp, productsResp, categoriesResp] = await Promise.all([
           collectionApi.getAllCollections(),
           productApi.getProducts({ limit: 100 }),
+          categoryApi.getCategories(),
         ])
-        setAvailableCollections(collections || [])
-        setAvailableProducts(products || [])
+        // API returns { success, data, meta } — unwrap to get arrays
+        const collectionsList: Collection[] = Array.isArray(collectionsResp)
+          ? collectionsResp
+          : (collectionsResp?.data || [])
+        const productsList: Product[] = Array.isArray(productsResp)
+          ? productsResp
+          : (productsResp?.data || [])
+        const categoriesList: Category[] = Array.isArray(categoriesResp)
+          ? categoriesResp
+          : (categoriesResp?.data || [])
+        setAvailableCollections(collectionsList)
+        setAvailableProducts(productsList)
+        setAvailableCategories(categoriesList)
 
         // Fetch section data if editing
         if (id) {
-          const section = await homepageSectionApi.getSectionById(id)
+          const sectionResp = await homepageSectionApi.getSectionById(id)
+          // API returns { success, data } — unwrap to get section object
+          const section = sectionResp?.data ?? sectionResp
 
           // Get first item if exists
           const firstItem = section.items?.[0] || null
@@ -229,16 +295,60 @@ export default function SectionFormPage() {
           // Get productIds from section.products for PRODUCT_RAIL
           const productIds = section.products?.map((p: HomepageSectionProduct) => p.productId) || []
 
-          // Get collectionIds from configJson or metaJson for MEDIA_TILES
+          // For MEDIA_TILES: collectionIds come from items[].collectionId (FK).
+          // Fallback to legacy metaJson/configJson if FK isn't populated yet (pre-migration data).
+          const itemCollectionIds: string[] = (section.items || [])
+            .filter((it: any) => it.itemType === 'COLLECTION' && it.collectionId)
+            .map((it: any) => it.collectionId as string)
+
+          const itemIdMap: Record<string, string> = {}
+          ;(section.items || [])
+            .filter((it: any) => it.itemType === 'COLLECTION' && it.collectionId)
+            .forEach((it: any) => {
+              itemIdMap[it.collectionId] = it.id
+            })
+
           const configCollectionIds = Array.isArray(configJson?.collectionIds)
-            ? configJson.collectionIds as string[]
+            ? (configJson.collectionIds as string[])
             : []
           const metaCollectionIds = Array.isArray(metaJson?.collectionIds)
-            ? metaJson.collectionIds as string[]
+            ? (metaJson.collectionIds as string[])
             : metaJson?.collectionId
               ? [metaJson.collectionId as string]
               : []
-          const collectionIds = configCollectionIds.length > 0 ? configCollectionIds : metaCollectionIds
+          const collectionIds = itemCollectionIds.length > 0
+            ? itemCollectionIds
+            : configCollectionIds.length > 0
+              ? configCollectionIds
+              : metaCollectionIds
+
+          setCollectionItemIdMap(itemIdMap)
+
+          // STATIC_BANNER: rehydrate 3 tiles from items[]. Each tile has categoryId in metaJson.
+          const loadedTiles: { categoryId: string; mediaUrl: string; itemId: string }[] = [
+            { categoryId: '', mediaUrl: '', itemId: '' },
+            { categoryId: '', mediaUrl: '', itemId: '' },
+            { categoryId: '', mediaUrl: '', itemId: '' },
+          ]
+          if (section.sectionType === 'STATIC_BANNER') {
+            const tileItems = (section.items || [])
+              .filter((it: any) => it.itemType === 'MEDIA_TILE')
+              .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+              .slice(0, 3)
+            tileItems.forEach((it: any, idx: number) => {
+              const meta = (typeof it.metaJson === 'string' ? JSON.parse(it.metaJson) : it.metaJson) || {}
+              loadedTiles[idx] = {
+                categoryId: meta.categoryId || '',
+                mediaUrl: it.mediaUrl || '',
+                itemId: it.id,
+              }
+            })
+          }
+
+          // CATEGORY_SHOWCASE: load all items so the sub-editor can rehydrate
+          if (section.sectionType === 'CATEGORY_SHOWCASE') {
+            setCategoryShowcaseItems(section.items || [])
+          }
 
           const loadedData = {
             sectionType: section.sectionType,
@@ -257,6 +367,7 @@ export default function SectionFormPage() {
             ctaUrl: firstItem?.ctaUrl || '',
             selectedProductIds: productIds,
             selectedCollectionIds: collectionIds,
+            staticBannerTiles: loadedTiles,
           }
 
           setFormData(loadedData)
@@ -298,16 +409,27 @@ export default function SectionFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validate PRODUCT_RAIL requires at least one product
-    if (formData.sectionType === 'PRODUCT_RAIL' && formData.selectedProductIds.length === 0) {
+    // Validate product-like types require at least one product
+    if (PRODUCT_LIKE.includes(formData.sectionType) && formData.selectedProductIds.length === 0) {
       showToast.error(lang === 'vi' ? 'Vui lòng chọn ít nhất một sản phẩm' : 'Please select at least one product')
       return
     }
 
-    // Validate MEDIA_TILES requires at least one collection
-    if (formData.sectionType === 'MEDIA_TILES' && formData.selectedCollectionIds.length === 0) {
+    // Validate collection-like types require at least one collection
+    if (COLLECTION_LIKE.includes(formData.sectionType) && formData.selectedCollectionIds.length === 0) {
       showToast.error(lang === 'vi' ? 'Vui lòng chọn ít nhất một bộ sưu tập' : 'Please select at least one collection')
       return
+    }
+
+    // STATIC_BANNER must have exactly 3 tiles, each with category + image
+    if (formData.sectionType === 'STATIC_BANNER') {
+      const tiles = formData.staticBannerTiles
+      if (!tiles || tiles.length !== 3 || tiles.some((t) => !t.categoryId || !t.mediaUrl)) {
+        showToast.error(lang === 'vi'
+          ? 'Static Banner cần đúng 3 ô: mỗi ô phải có category và ảnh'
+          : 'Static Banner needs 3 tiles: each must have a category and image')
+        return
+      }
     }
 
     setSaving(true)
@@ -341,80 +463,71 @@ export default function SectionFormPage() {
         sectionId = created.data.id
       }
 
-      // Create or update item for HERO, PRODUCT_RAIL, MEDIA_TILES, ANNOUNCEMENT_BAR
-      if (sectionId && ['HERO', 'PRODUCT_RAIL', 'MEDIA_TILES', 'ANNOUNCEMENT_BAR'].includes(formData.sectionType)) {
-        const itemType: 'BANNER' | 'PRODUCT' | 'COLLECTION' | 'ANNOUNCEMENT' = formData.sectionType === 'HERO' ? 'BANNER'
-          : formData.sectionType === 'PRODUCT_RAIL' ? 'PRODUCT'
-          : formData.sectionType === 'ANNOUNCEMENT_BAR' ? 'ANNOUNCEMENT'
-          : 'COLLECTION'
+      if (!sectionId) throw new Error('Missing section id after create')
 
-        const metaJson: Record<string, unknown> = {}
-        if (itemType === 'PRODUCT' && formData.selectedProductIds.length > 0) {
-          metaJson.productIds = formData.selectedProductIds
-        }
-        if (itemType === 'COLLECTION' && formData.selectedCollectionIds.length > 0) {
-          metaJson.collectionIds = formData.selectedCollectionIds
-        }
-
-        const itemData = {
-          itemType,
-          title: formData.title,
-          subtitle: formData.subtitle || undefined,
-          mediaUrl: formData.mediaUrl || undefined,
-          ctaLabel: formData.ctaLabel || undefined,
-          ctaUrl: formData.ctaUrl || undefined,
-          metaJson: Object.keys(metaJson).length > 0 ? metaJson : undefined,
-        }
-
-        // Delete existing items first if editing
-        if (editingItem) {
-          await homepageSectionApi.updateItem(sectionId, editingItem.id, itemData)
-        } else if (sectionId) {
-          // Check if section has existing items
-          const existingSection = await homepageSectionApi.getSectionById(sectionId)
-          if (existingSection.items?.[0]) {
-            // Update existing item
-            await homepageSectionApi.updateItem(sectionId, existingSection.items[0].id, itemData)
-          } else {
-            // Create new item
-            await homepageSectionApi.createItem(sectionId, itemData)
-          }
-        }
+      // ===== Collection-like (MEDIA_TILES): sync N COLLECTION items =====
+      if (COLLECTION_LIKE.includes(formData.sectionType)) {
+        const items: SyncItemInput[] = formData.selectedCollectionIds.map((cid) => ({
+          id: collectionItemIdMap[cid], // preserve existing item id if any
+          itemType: 'COLLECTION',
+          collectionId: cid,
+          isActive: true,
+        }))
+        await homepageSectionApi.syncItems(sectionId, items)
       }
 
-      // Sync products for PRODUCT_RAIL section
-      if (sectionId && formData.sectionType === 'PRODUCT_RAIL') {
-        // Get existing products in section
-        const existingSection = await homepageSectionApi.getSectionById(sectionId)
+      // ===== STATIC_BANNER: 3 MEDIA_TILE items, each linked to a category =====
+      if (formData.sectionType === 'STATIC_BANNER') {
+        const items: SyncItemInput[] = formData.staticBannerTiles.map((tile, idx) => {
+          const cat = availableCategories.find((c) => c.id === tile.categoryId)
+          return {
+            id: tile.itemId || undefined,
+            itemType: 'MEDIA_TILE',
+            title: cat?.name || null,
+            subtitle: cat?.description || null,
+            mediaUrl: tile.mediaUrl,
+            ctaUrl: cat ? `/products?category=${cat.slug}` : null,
+            metaJson: { categoryId: tile.categoryId, categorySlug: cat?.slug, tileIndex: idx },
+            isActive: true,
+          }
+        })
+        await homepageSectionApi.syncItems(sectionId, items)
+      }
+
+      // ===== Hero-like (HERO): single BANNER item =====
+      if (HERO_LIKE.includes(formData.sectionType)) {
+        const items: SyncItemInput[] = [
+          {
+            id: editingItem?.id,
+            itemType: 'BANNER',
+            title: formData.title || null,
+            subtitle: formData.subtitle || null,
+            mediaUrl: formData.mediaUrl || null,
+            ctaLabel: formData.ctaLabel || null,
+            ctaUrl: formData.ctaUrl || null,
+            isActive: true,
+          },
+        ]
+        await homepageSectionApi.syncItems(sectionId, items)
+      }
+
+      // ===== Product-like (PRODUCT_RAIL, NEW_SEASON_ARRIVALS): sync products via join-table =====
+      if (PRODUCT_LIKE.includes(formData.sectionType)) {
+        const existingResp = await homepageSectionApi.getSectionById(sectionId)
+        const existingSection = existingResp?.data ?? existingResp
         const existingProductIds = existingSection.products?.map((p: any) => p.productId) || []
 
-        // Remove products that are no longer selected
         for (const existingId of existingProductIds) {
           if (!formData.selectedProductIds.includes(existingId)) {
             await homepageSectionApi.removeProduct(sectionId, existingId)
           }
         }
-
-        // Add new products
         for (let i = 0; i < formData.selectedProductIds.length; i++) {
           const productId = formData.selectedProductIds[i]
           if (!existingProductIds.includes(productId)) {
-            await homepageSectionApi.addProduct(sectionId, {
-              productId,
-              sortOrder: i,
-            })
+            await homepageSectionApi.addProduct(sectionId, { productId, sortOrder: i })
           }
         }
-      }
-
-      // Update configJson for MEDIA_TILES with collectionIds
-      if (sectionId && formData.sectionType === 'MEDIA_TILES' && formData.selectedCollectionIds.length > 0) {
-        await homepageSectionApi.updateSection(sectionId, {
-          configJson: {
-            ...formData.configJson,
-            collectionIds: formData.selectedCollectionIds,
-          },
-        })
       }
 
       setIsDirty(false)
@@ -543,11 +656,17 @@ export default function SectionFormPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SECTION_TYPES.map(type => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.icon} {lang === 'en' ? type.label : type.labelVi}
-                      </SelectItem>
-                    ))}
+                    {SECTION_TYPES.map((type) => {
+                      const Icon = type.Icon
+                      return (
+                        <SelectItem key={type.value} value={type.value}>
+                          <span className="flex items-center gap-2">
+                            <Icon className="w-3.5 h-3.5" strokeWidth={1.5} />
+                            {lang === 'en' ? type.label : type.labelVi}
+                          </span>
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
                 {isEditing && (
@@ -612,7 +731,7 @@ export default function SectionFormPage() {
             </div>
 
             {/* Layout - moved here and combined with info */}
-            {['PRODUCT_RAIL', 'MEDIA_TILES'].includes(formData.sectionType) && (
+            {[...PRODUCT_LIKE, ...COLLECTION_LIKE].includes(formData.sectionType) && (
               <div className="space-y-2">
                 <Label>{lang === 'vi' ? 'Kiểu hiển thị' : 'Display Layout'}</Label>
                 <Select
@@ -631,77 +750,67 @@ export default function SectionFormPage() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-stone-500 italic">
+                  {lang === 'vi'
+                    ? 'Lưu ý: trang chủ hiện đang render dạng carousel cho tất cả product rail.'
+                    : 'Note: the storefront currently renders all product rails as carousel.'}
+                </p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* ========== SECTION 2: Content Settings ========== */}
-        {(formData.sectionType === 'HERO' || formData.sectionType === 'ANNOUNCEMENT_BAR') && (
+        {/* ========== SECTION 2: Content Settings (HERO) ========== */}
+        {HERO_LIKE.includes(formData.sectionType) && (
           <Card>
             <CardHeader>
-              <CardTitle>
-                {formData.sectionType === 'HERO'
-                  ? (lang === 'vi' ? 'Cài đặt Banner' : 'Banner Settings')
-                  : (lang === 'vi' ? 'Cài đặt Thông báo' : 'Announcement Settings')
-                }
-              </CardTitle>
+              <CardTitle>{lang === 'vi' ? 'Cài đặt Banner' : 'Banner Settings'}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {formData.sectionType === 'HERO' && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Banner Image</Label>
-                    <ImageUpload
-                      value={formData.mediaUrl}
-                      onChange={(url) => updateFormData(prev => ({ ...prev, mediaUrl: url }))}
-                      multiple={false}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="ctaLabel">CTA Label</Label>
-                      <Input
-                        id="ctaLabel"
-                        type="text"
-                        value={formData.ctaLabel}
-                        onChange={(e) => updateFormData(prev => ({ ...prev, ctaLabel: e.target.value }))}
-                        placeholder={lang === 'vi' ? 'VD: Mua ngay' : 'e.g., Shop Now'}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="ctaUrl">CTA URL</Label>
-                      <Input
-                        id="ctaUrl"
-                        type="text"
-                        value={formData.ctaUrl}
-                        onChange={(e) => updateFormData(prev => ({ ...prev, ctaUrl: e.target.value }))}
-                        placeholder={lang === 'vi' ? 'VD: /products' : 'e.g., /products'}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-              {formData.sectionType === 'ANNOUNCEMENT_BAR' && (
+              <div className="space-y-2">
+                <Label>Banner Image</Label>
+                {(() => {
+                  const hint = SECTION_TYPES.find((t) => t.value === formData.sectionType)?.aspectHint
+                  return hint ? (
+                    <p className="text-xs text-stone-500 italic">
+                      {lang === 'vi' ? 'Khuyến nghị' : 'Recommended'}: {hint.ratio} · {hint.minResolution}
+                    </p>
+                  ) : null
+                })()}
+                <ImageUpload
+                  value={formData.mediaUrl}
+                  onChange={(url) => updateFormData(prev => ({ ...prev, mediaUrl: url }))}
+                  multiple={false}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="ctaUrl">
-                    {lang === 'vi' ? 'Link thông báo (tùy chọn)' : 'Announcement Link (optional)'}
-                  </Label>
+                  <Label htmlFor="ctaLabel">CTA Label</Label>
+                  <Input
+                    id="ctaLabel"
+                    type="text"
+                    value={formData.ctaLabel}
+                    onChange={(e) => updateFormData(prev => ({ ...prev, ctaLabel: e.target.value }))}
+                    placeholder={lang === 'vi' ? 'VD: Mua ngay' : 'e.g., Shop Now'}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ctaUrl">CTA URL</Label>
                   <Input
                     id="ctaUrl"
                     type="text"
                     value={formData.ctaUrl}
                     onChange={(e) => updateFormData(prev => ({ ...prev, ctaUrl: e.target.value }))}
-                    placeholder={lang === 'vi' ? 'VD: /products hoặc https://example.com' : 'e.g., /products or https://example.com'}
+                    placeholder={lang === 'vi' ? 'VD: /products' : 'e.g., /products'}
                   />
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* ========== SECTION 3: Products ========== */}
-        {formData.sectionType === 'PRODUCT_RAIL' && (
+        {/* ========== SECTION 3: Products (PRODUCT_RAIL / NEW_SEASON_ARRIVALS) ========== */}
+        {PRODUCT_LIKE.includes(formData.sectionType) && (
           <Card>
             <CardHeader>
               <CardTitle>{lang === 'vi' ? 'Chọn sản phẩm' : 'Select Products'}</CardTitle>
@@ -818,15 +927,19 @@ export default function SectionFormPage() {
           </Card>
         )}
 
-        {/* ========== SECTION 4: Collections ========== */}
-        {formData.sectionType === 'MEDIA_TILES' && (
+        {/* ========== SECTION 4: Collections (MEDIA_TILES / STATIC_BANNER) ========== */}
+        {COLLECTION_LIKE.includes(formData.sectionType) && (
           <Card>
             <CardHeader>
               <CardTitle>{lang === 'vi' ? 'Chọn bộ sưu tập' : 'Select Collections'}</CardTitle>
               <CardDescription>
-                {formData.selectedCollectionIds.length > 0
-                  ? `${formData.selectedCollectionIds.length} ${lang === 'vi' ? 'bộ sưu tập đã chọn' : 'collections selected'}`
-                  : (lang === 'vi' ? 'Chọn ít nhất 1 bộ sưu tập' : 'Select at least 1 collection')
+                {formData.sectionType === 'STATIC_BANNER'
+                  ? (lang === 'vi'
+                    ? `Chọn 3 bộ sưu tập: 1 banner lớn + 2 banner nhỏ. Đang chọn: ${formData.selectedCollectionIds.length}/3`
+                    : `Pick 3 collections: 1 large banner + 2 small. Selected: ${formData.selectedCollectionIds.length}/3`)
+                  : formData.selectedCollectionIds.length > 0
+                    ? `${formData.selectedCollectionIds.length} ${lang === 'vi' ? 'bộ sưu tập đã chọn' : 'collections selected'}`
+                    : (lang === 'vi' ? 'Chọn ít nhất 1 bộ sưu tập' : 'Select at least 1 collection')
                 }
               </CardDescription>
             </CardHeader>
@@ -933,10 +1046,54 @@ export default function SectionFormPage() {
           </Card>
         )}
 
+        {/* ========== SECTION 4b: Category Showcase Items ========== */}
+        {formData.sectionType === 'CATEGORY_SHOWCASE' && id && (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {lang === 'vi' ? 'Danh sách ô showcase' : 'Showcase Tiles'}
+              </CardTitle>
+              <CardDescription>
+                {lang === 'vi'
+                  ? 'Mỗi ô liên kết đến một danh mục sản phẩm. Lưu thông tin cơ bản trước, sau đó quản lý các ô tại đây.'
+                  : 'Each tile links to a product category. Save basic info first, then manage tiles here.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CategoryShowcaseItemsEditor
+                sectionId={id}
+                initialItems={categoryShowcaseItems}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {formData.sectionType === 'CATEGORY_SHOWCASE' && !id && (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {lang === 'vi' ? 'Danh sách ô showcase' : 'Showcase Tiles'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-500">
+                {lang === 'vi'
+                  ? 'Lưu section này trước, sau đó quay lại để thêm các ô showcase.'
+                  : 'Save this section first, then come back to add showcase tiles.'}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* ========== SECTION 5: Schedule & Status ========== */}
         <Card>
           <CardHeader>
             <CardTitle>{lang === 'vi' ? 'Lịch trình & Trạng thái' : 'Schedule & Status'}</CardTitle>
+            <CardDescription>
+              {lang === 'vi'
+                ? `Thời gian theo múi giờ thiết bị của bạn (${Intl.DateTimeFormat().resolvedOptions().timeZone}).`
+                : `Times use your device timezone (${Intl.DateTimeFormat().resolvedOptions().timeZone}).`}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

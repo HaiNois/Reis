@@ -74,6 +74,7 @@ export default function ProductDetailPage() {
     color: '',
     price: 0,
     salePrice: 0,
+    priceUsd: 0,
     quantity: 0,
   })
 
@@ -205,6 +206,7 @@ export default function ProductDetailPage() {
         color: variant.color,
         price: variant.price,
         salePrice: variant.salePrice || 0,
+        priceUsd: variant.priceUsd ? Number(variant.priceUsd) : 0,
         quantity: variant.quantity || 0,
       })
     } else {
@@ -215,6 +217,7 @@ export default function ProductDetailPage() {
         color: '',
         price: product?.price || 0,
         salePrice: 0,
+        priceUsd: 0,
         quantity: 0,
       })
     }
@@ -233,6 +236,7 @@ export default function ProductDetailPage() {
         color: variantForm.color,
         price: Number(variantForm.price),
         salePrice: variantForm.salePrice ? Number(variantForm.salePrice) : undefined,
+        priceUsd: variantForm.priceUsd ? Number(variantForm.priceUsd) : undefined,
         quantity: variantForm.quantity,
       }
       if (editingVariant) {
@@ -594,6 +598,18 @@ export default function ProductDetailPage() {
                   value={variantForm.salePrice}
                   onChange={(e) => setVariantForm({ ...variantForm, salePrice: Number(e.target.value) })}
                   placeholder="Optional"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="variantPriceUsd">{t('admin.variantPriceUsd')}</Label>
+                <Input
+                  id="variantPriceUsd"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={variantForm.priceUsd}
+                  onChange={(e) => setVariantForm({ ...variantForm, priceUsd: Number(e.target.value) })}
+                  placeholder="USD — required for PayPal"
                 />
               </div>
               <div className="space-y-2">

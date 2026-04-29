@@ -46,6 +46,7 @@ export const createVariantSchema = z.object({
   color: z.string().min(1, 'Color is required'),
   price: z.number().positive('Price must be positive'),
   salePrice: z.number().positive().optional(),
+  priceUsd: z.coerce.number().positive().optional(),
   quantity: z.number().int().min(0, 'Quantity must be non-negative').default(0),
   isActive: z.boolean().optional(),
 })

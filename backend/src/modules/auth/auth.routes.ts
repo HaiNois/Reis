@@ -11,6 +11,8 @@ router.post('/refresh-token', authController.refreshToken)
 
 // Protected routes
 router.get('/profile', authenticate, authController.getProfile)
+router.patch('/profile', authenticate, authController.updateProfile)
+router.post('/change-password', authenticate, authController.changePassword)
 router.post('/logout', authenticate, authController.logout)
 
 export default router

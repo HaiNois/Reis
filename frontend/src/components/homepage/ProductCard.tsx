@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useInView } from '@/hooks/useInView'
+import { usePrice } from '@/hooks/usePrice'
 import { cn } from '@/lib/utils'
 import { FALLBACK_IMAGE } from '@/services/productApi'
 
@@ -9,10 +10,12 @@ interface ProductCardProps {
   name: string
   nameEn?: string
   price: number
+  priceUsd?: number | null
   images: string[]
   isNew?: boolean
   isSale?: boolean
   salePrice?: number
+  salePriceUsd?: number | null
   className?: string
 }
 
@@ -21,21 +24,22 @@ export function ProductCard({
   name,
   nameEn,
   price,
+  priceUsd,
   images,
   isNew,
   isSale,
   salePrice,
+  salePriceUsd,
   className,
 }: ProductCardProps) {
   const { i18n } = useTranslation()
   const lang = i18n.language || 'vi'
+  const fmt = usePrice()
   const { ref, isInView } = useInView<HTMLDivElement>({ threshold: 0.1 })
 
   const displayName = lang === 'en' && nameEn ? nameEn : name
   const mainImage = images?.[0] || FALLBACK_IMAGE
   const hasMultipleImages = images?.length > 1
-
-  const formatPrice = (p: number) => p.toLocaleString('vi-VN')
 
   return (
     <div
@@ -100,11 +104,13 @@ export function ProductCard({
         </h3>
         <div className="mt-1 flex items-center gap-2">
           <span className={cn('font-medium', isSale && 'text-red-500')}>
-            {formatPrice(isSale && salePrice ? salePrice : price)} ₫
+            {isSale && salePrice
+              ? fmt(salePrice, salePriceUsd)
+              : fmt(price, priceUsd)}
           </span>
           {isSale && salePrice && (
             <span className="text-gray-400 line-through text-sm">
-              {formatPrice(price)} ₫
+              {fmt(price, priceUsd)}
             </span>
           )}
         </div>

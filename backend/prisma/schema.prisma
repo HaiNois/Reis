@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -190,6 +190,7 @@ model ProductVariant {
   color       String
   price       Decimal  @db.Decimal(12, 2)
   salePrice   Decimal? @db.Decimal(12, 2)
+  priceUsd    Decimal? @db.Decimal(10, 2)
   quantity    Int      @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -305,7 +306,7 @@ model RefreshToken {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token     String    @unique
+  token     String   @unique @db.VarChar(512)
   expiresAt DateTime
   createdAt DateTime @default(now())
 
@@ -332,15 +333,15 @@ model Banner {
 // ==================== HOMEPAGE CMS ====================
 
 enum HomepageSectionType {
-  ANNOUNCEMENT_BAR
   HERO
   PRODUCT_RAIL
   MEDIA_TILES
   NEW_SEASON_ARRIVALS
+  STATIC_BANNER
+  CATEGORY_SHOWCASE
 }
 
 enum HomepageItemType {
-  ANNOUNCEMENT
   MEDIA_TILE
   PRODUCT
   COLLECTION
@@ -429,6 +430,24 @@ model HomepageSectionProduct {
   @@index([productId])
 }
 
+// ==================== CATALOG ====================
+
+model Catalog {
+  id          String    @id @default(uuid())
+  name        String
+  nameEn      String?
+  slug        String    @unique
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([slug])
+  @@index([isActive, sortOrder])
+}
+
 // ==================== FEEDBACK ====================
 
 model Feedback {
@@ -472,6 +491,29 @@ model InventoryLog {
 
   @@index([variantId])
   @@index([createdAt])
+}
+
+// ==================== ANNOUNCEMENT BAR ====================
+
+model AnnouncementMessage {
+  id           String    @id @default(cuid())
+  textVi       String    @db.VarChar(200)
+  textEn       String    @db.VarChar(200)
+  icon         String?   @db.VarChar(50)
+  ctaTextVi    String?   @db.VarChar(50)
+  ctaTextEn    String?   @db.VarChar(50)
+  ctaHref      String?   @db.VarChar(500)
+  variant      String    @default("dark") @db.VarChar(20)
+  isActive     Boolean   @default(true)
+  startsAt     DateTime?
+  endsAt       DateTime?
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@index([startsAt, endsAt])
+  @@map("announcement_message")
 }
 
 // ==================== CMS PAGES ====================

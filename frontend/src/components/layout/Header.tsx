@@ -11,10 +11,9 @@ import { cn } from '@/lib/utils'
 export default function Header() {
   const { t } = useTranslation()
   const { isAuthenticated } = useAuthStore()
-  const { items } = useCartStore()
+  const { items, isCartOpen, openCart, closeCart } = useCartStore()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isCartOpen, setIsCartOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
@@ -163,7 +162,7 @@ export default function Header() {
 
               {/* Cart */}
               <button
-                onClick={() => setIsCartOpen(true)}
+                onClick={openCart}
                 className="relative p-2 hover:text-gray-600 transition-colors"
                 aria-label={`${t('header.cart') || 'Cart'} (${cartCount})`}
               >
@@ -275,7 +274,7 @@ export default function Header() {
       </header>
 
       {/* Cart Drawer */}
-      <CartDrawer open={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <CartDrawer open={isCartOpen} onClose={closeCart} />
 
       {/* Search Dialog */}
       <SearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />

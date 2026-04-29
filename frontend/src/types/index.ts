@@ -29,6 +29,7 @@ export interface ProductVariant {
   size?: Size
   color?: Color
   price: number
+  priceUsd?: number | null
   compareAtPrice?: number
   isActive: boolean
   inventory?: Inventory

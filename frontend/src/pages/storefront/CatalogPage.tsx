@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { productApi, categoryApi, FALLBACK_IMAGE } from '../../services/productApi'
+import { usePrice } from '@/hooks/usePrice'
 
 interface ProductData {
   id: string
@@ -9,7 +10,9 @@ interface ProductData {
   name: string
   nameEn?: string
   price: string | number
+  priceUsd?: string | number | null
   compareAtPrice?: string | number | null
+  compareAtPriceUsd?: string | number | null
   image?: string
   images?: Array<{ id: string; publicUrl?: string; objectKey?: string; url?: string }>
   status: string
@@ -25,6 +28,7 @@ interface CategoryData {
 
 // Product Card Component
 function ProductCard({ product }: { product: ProductData }) {
+  const fmt = usePrice()
   // Get main image URL - handle both legacy `image` string and `images` array
   let imageUrl = FALLBACK_IMAGE
 
@@ -67,10 +71,10 @@ function ProductCard({ product }: { product: ProductData }) {
           {product.name}
         </h3>
         <p className="product-card__price">
-          {Number(product.price).toLocaleString('vi-VN')} ₫
+          {fmt(product.price as number, product.priceUsd as number | null | undefined)}
           {product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price) && (
             <span className="ml-2 text-gray-400 line-through text-sm">
-              {Number(product.compareAtPrice).toLocaleString('vi-VN')} ₫
+              {fmt(product.compareAtPrice as number, product.compareAtPriceUsd as number | null | undefined)}
             </span>
           )}
         </p>

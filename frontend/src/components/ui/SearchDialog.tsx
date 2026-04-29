@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { usePrice } from '@/hooks/usePrice'
 import { cn } from '@/lib/utils'
 
 interface SearchProduct {
@@ -13,6 +14,7 @@ interface SearchProduct {
   slug: string
   image?: string
   price: number
+  priceUsd?: number | null
   isNew?: boolean
 }
 
@@ -25,6 +27,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const { i18n } = useTranslation()
   const navigate = useNavigate()
   const lang = i18n.language || 'vi'
+  const fmt = usePrice()
   const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchProduct[]>([])
@@ -193,7 +196,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                         </h4>
                       </div>
                       <p className="text-gray-600 text-sm mt-0.5">
-                        {Number(product.price).toLocaleString('vi-VN')} ₫
+                        {fmt(product.price, product.priceUsd)}
                       </p>
                     </div>
                     <svg

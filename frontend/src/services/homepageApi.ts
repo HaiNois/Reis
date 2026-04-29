@@ -3,12 +3,14 @@ import api from './api'
 // ==================== TYPES ====================
 
 export type HomepageSectionType =
-  | 'ANNOUNCEMENT_BAR'
   | 'HERO'
   | 'PRODUCT_RAIL'
   | 'MEDIA_TILES'
+  | 'NEW_SEASON_ARRIVALS'
+  | 'STATIC_BANNER'
+  | 'CATEGORY_SHOWCASE'
 
-export type HomepageItemType = 'ANNOUNCEMENT' | 'MEDIA_TILE' | 'PRODUCT' | 'COLLECTION' | 'BANNER'
+export type HomepageItemType = 'MEDIA_TILE' | 'PRODUCT' | 'COLLECTION' | 'BANNER'
 
 export type MediaType = 'IMAGE' | 'VIDEO'
 
@@ -47,11 +49,46 @@ export interface HomepageSectionItem {
   ctaLabel?: string
   ctaUrl?: string
   linkTarget: LinkTarget
+  collectionId?: string | null
+  collection?: {
+    id: string
+    name: string
+    nameEn?: string
+    slug: string
+    image?: string
+  } | null
+  // Populated by backend for CATEGORY_SHOWCASE items — links to /products?category=<slug>.
+  category?: {
+    id: string
+    name: string
+    nameEn: string | null
+    slug: string
+  } | null
+  // Auto-fetched from first active product in the linked category (CATEGORY_SHOWCASE only).
+  // Backend populates this when mediaUrl is empty.
+  previewImage?: string | null
   metaJson?: Record<string, unknown>
   isActive: boolean
   sortOrder: number
   createdAt: string
   updatedAt: string
+}
+
+export interface SyncItemInput {
+  id?: string
+  itemType: HomepageItemType
+  title?: string | null
+  subtitle?: string | null
+  description?: string | null
+  mediaUrl?: string | null
+  mobileMediaUrl?: string | null
+  mediaType?: MediaType
+  ctaLabel?: string | null
+  ctaUrl?: string | null
+  linkTarget?: LinkTarget
+  collectionId?: string | null
+  metaJson?: Record<string, unknown> | null
+  isActive?: boolean
 }
 
 export interface HomepageSectionProduct {
@@ -162,6 +199,12 @@ export const homepageSectionApi = {
 
   reorderItems: async (sectionId: string, items: { id: string; sortOrder: number }[]) => {
     const response = await api.patch(`/admin/homepage-sections/${sectionId}/items/sort`, { items })
+    return response.data
+  },
+
+  // Replace-all sync: backend will create/update/soft-delete to match this list
+  syncItems: async (sectionId: string, items: SyncItemInput[]) => {
+    const response = await api.put(`/admin/homepage-sections/${sectionId}/items`, { items })
     return response.data
   },
 

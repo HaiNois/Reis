@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Lock } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet'
+import { useAuthStore } from '@/stores/authStore'
+import { usePrice } from '@/hooks/usePrice'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
@@ -13,13 +16,21 @@ interface CartDrawerProps {
 
 export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const { t } = useTranslation()
-  const { items, updateQuantity, removeItem, getTotal } = useCartStore()
+  const fmt = usePrice()
+  const { items, updateQuantity, removeItem, getTotal, getTotalUsd } = useCartStore()
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+
+  // When unauthenticated, send user to login with redirect back to checkout
+  const checkoutHref = isAuthenticated
+    ? '/checkout'
+    : `/login?redirect=${encodeURIComponent('/checkout')}`
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
         <SheetHeader className="px-6 py-4 border-b">
           <SheetTitle className="text-lg">{t('cart.title')}</SheetTitle>
+          <SheetDescription className="sr-only">{t('cart.emptyDesc')}</SheetDescription>
         </SheetHeader>
 
         {items.length === 0 ? (
@@ -66,7 +77,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </div>
                     <div className="flex items-end justify-between gap-2 mt-2">
                       <span className="text-sm font-medium">
-                        {item.price.toLocaleString('vi-VN')} ₫
+                        {fmt(item.price, item.priceUsd)}
                       </span>
                       <div className="flex items-center gap-1">
                         <Button
@@ -112,7 +123,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{t('cart.subtotal')}</span>
-                  <span>{getTotal().toLocaleString('vi-VN')} ₫</span>
+                  <span>{fmt(getTotal(), getTotalUsd())}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{t('cart.shipping')}</span>
@@ -121,12 +132,21 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                 <Separator />
                 <div className="flex justify-between font-medium">
                   <span>{t('cart.total')}</span>
-                  <span>{getTotal().toLocaleString('vi-VN')} ₫</span>
+                  <span>{fmt(getTotal(), getTotalUsd())}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
                 <Button asChild size="lg" onClick={onClose}>
-                  <Link to="/checkout">{t('cart.checkout')}</Link>
+                  <Link to={checkoutHref} className="gap-2">
+                    {!isAuthenticated && (
+                      <Lock className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
+                    )}
+                    <span>
+                      {isAuthenticated
+                        ? t('cart.checkout')
+                        : t('auth.loginToCheckout')}
+                    </span>
+                  </Link>
                 </Button>
                 <Button asChild variant="outline" onClick={onClose}>
                   <Link to="/cart">{t('cart.viewCart')}</Link>

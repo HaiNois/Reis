@@ -4,9 +4,11 @@ import {
   updateHomepageSectionSchema,
   addProductToSectionSchema,
   reorderProductsSchema,
+  reorderSectionsSchema,
   createHomepageSectionItemSchema,
   updateHomepageSectionItemSchema,
   reorderItemsSchema,
+  syncItemsSchema,
 } from './homepage-section.dto.js'
 import { asyncHandler } from '../../shared/utils/error-handler.js'
 
@@ -85,6 +87,17 @@ export class HomepageSectionController {
     })
   })
 
+  // Admin - Reorder sections (drag-and-drop sort)
+  reorderSections = asyncHandler(async (req, res) => {
+    const input = reorderSectionsSchema.parse(req.body)
+    const sections = await homepageSectionService.reorderSections(input)
+
+    res.json({
+      success: true,
+      data: sections,
+    })
+  })
+
   // Admin - Reorder products
   reorderProducts = asyncHandler(async (req, res) => {
     const { id } = req.params
@@ -151,6 +164,18 @@ export class HomepageSectionController {
     res.json({
       success: true,
       data: { message: 'Item deleted successfully' },
+    })
+  })
+
+  // Admin - Sync (replace-all) items in section
+  syncItems = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const input = syncItemsSchema.parse(req.body)
+    const items = await homepageSectionService.syncItems(id, input)
+
+    res.json({
+      success: true,
+      data: items,
     })
   })
 

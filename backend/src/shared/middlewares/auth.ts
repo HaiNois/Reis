@@ -4,7 +4,7 @@ import { env } from '../../config/env.js'
 import { UnauthorizedError } from '../utils/error-handler.js'
 
 export interface AuthUser {
-  id: string
+  userId: string
   email: string
   role: string
 }

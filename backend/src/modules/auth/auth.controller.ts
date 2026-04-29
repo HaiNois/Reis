@@ -1,7 +1,12 @@
-import { z } from 'zod'
 import { authService } from './auth.service.js'
-import { registerSchema, loginSchema, refreshTokenSchema } from './auth.dto.js'
-import { asyncHandler, ValidationError } from '../../shared/utils/error-handler.js'
+import {
+  registerSchema,
+  loginSchema,
+  refreshTokenSchema,
+  updateProfileSchema,
+  changePasswordSchema,
+} from './auth.dto.js'
+import { asyncHandler } from '../../shared/utils/error-handler.js'
 
 export class AuthController {
   register = asyncHandler(async (req, res) => {
@@ -57,6 +62,30 @@ export class AuthController {
     res.json({
       success: true,
       data: user,
+    })
+  })
+
+  updateProfile = asyncHandler(async (req, res) => {
+    const userId = req.user?.userId as string
+    const input = updateProfileSchema.parse(req.body)
+
+    const user = await authService.updateProfile(userId, input)
+
+    res.json({
+      success: true,
+      data: user,
+    })
+  })
+
+  changePassword = asyncHandler(async (req, res) => {
+    const userId = req.user?.userId as string
+    const input = changePasswordSchema.parse(req.body)
+
+    await authService.changePassword(userId, input)
+
+    res.json({
+      success: true,
+      data: { message: 'Password changed successfully' },
     })
   })
 }

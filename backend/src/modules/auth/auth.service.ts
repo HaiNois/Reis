@@ -4,7 +4,12 @@ import { v4 as uuidv4 } from 'uuid'
 import prisma from '../../config/database.js'
 import { env } from '../../config/env.js'
 import { NotFoundError, UnauthorizedError } from '../../shared/utils/error-handler.js'
-import type { RegisterInput, LoginInput } from './auth.dto.js'
+import type {
+  RegisterInput,
+  LoginInput,
+  UpdateProfileInput,
+  ChangePasswordInput,
+} from './auth.dto.js'
 
 export class AuthService {
   async register(input: RegisterInput) {
@@ -141,6 +146,9 @@ export class AuthService {
         phone: true,
         role: true,
         createdAt: true,
+        _count: {
+          select: { orders: true },
+        },
       },
     })
 
@@ -151,17 +159,68 @@ export class AuthService {
     return user
   }
 
+  async updateProfile(userId: string, input: UpdateProfileInput) {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+
+    if (!user) {
+      throw new NotFoundError('User')
+    }
+
+    return prisma.user.update({
+      where: { id: userId },
+      data: input,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+        _count: {
+          select: { orders: true },
+        },
+      },
+    })
+  }
+
+  async changePassword(userId: string, input: ChangePasswordInput) {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+
+    if (!user) {
+      throw new NotFoundError('User')
+    }
+
+    // Verify current password
+    const isValid = await bcrypt.compare(input.currentPassword, user.password)
+    if (!isValid) {
+      throw new UnauthorizedError('Current password is incorrect')
+    }
+
+    // Hash and update new password
+    const hashedPassword = await bcrypt.hash(input.newPassword, 12)
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    })
+
+    // Revoke all refresh tokens — force re-login on other devices
+    await prisma.refreshToken.deleteMany({ where: { userId } })
+
+    return { success: true }
+  }
+
   private generateTokens(userId: string, email: string, role: string) {
     const accessToken = jwt.sign(
       { userId, email, role },
       env.JWT_ACCESS_SECRET,
-      { expiresIn: env.JWT_ACCESS_EXPIRY }
+      { expiresIn: env.JWT_ACCESS_EXPIRY } as jwt.SignOptions,
     )
 
     const refreshToken = jwt.sign(
       { userId, email, role },
       env.JWT_REFRESH_SECRET,
-      { expiresIn: env.JWT_REFRESH_EXPIRY }
+      { expiresIn: env.JWT_REFRESH_EXPIRY } as jwt.SignOptions,
     )
 
     return { accessToken, refreshToken }

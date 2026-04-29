@@ -30,6 +30,11 @@ import collectionRoutes from './modules/collection/collection.routes.js'
 import collectionAdminRoutes from './modules/collection/admin.routes.js'
 import paymentRoutes from './modules/payment/payment.routes.js'
 import catalogRoutes from './modules/catalog/catalog.routes.js'
+import userAdminRoutes from './modules/user/user.routes.js'
+import {
+  announcementPublicRouter,
+  announcementAdminRouter,
+} from './modules/announcement-bar/announcement-bar.routes.js'
 
 const app = express()
 
@@ -80,6 +85,7 @@ app.use('/api/v1/admin/banners', bannerAdminRoutes)
 app.use('/api/v1/admin/homepage-sections', homepageSectionRoutes)
 app.use('/api/v1/admin/orders', orderAdminRoutes)
 app.use('/api/v1/admin/collections', collectionAdminRoutes)
+app.use('/api/v1/admin/users', userAdminRoutes)
 
 // Storefront routes
 app.use('/api/v1/storefront', homepageStorefrontRoutes)
@@ -94,6 +100,10 @@ app.use('/api/v1/collections', collectionRoutes)
 // Catalog routes
 app.use('/api/v1', catalogRoutes)
 app.use('/api/v1', paymentRoutes)
+
+// Announcement Bar routes
+app.use('/api/v1/announcement-messages', announcementPublicRouter)
+app.use('/api/v1/admin/announcement-messages', announcementAdminRouter)
 
 // Error handling
 app.use(errorHandler)

@@ -19,10 +19,10 @@ export interface PaginationMeta {
   totalPages: number
 }
 
-// Request with user
+// Request with user (matches AuthUser shape from middlewares/auth.ts)
 export interface AuthenticatedRequest extends Express.Request {
   user?: {
-    id: string
+    userId: string
     email: string
     role: string
   }

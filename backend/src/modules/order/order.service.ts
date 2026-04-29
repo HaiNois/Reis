@@ -8,6 +8,19 @@ function generateOrderNumber(): string {
   return `ORD-${timestamp}-${random}`
 }
 
+export interface PaypalOrderInput {
+  userId: string | null
+  items: Array<{ variantId: string; quantity: number }>
+  shippingFirstName: string
+  shippingLastName: string
+  shippingPhone: string
+  shippingAddress: string
+  shippingCity: string
+  shippingCountry: string
+  paypalCaptureId: string
+  notes?: string
+}
+
 export class OrderService {
   async createOrder(userId: string | null, input: CreateOrderInput) {
     // Validate variants and calculate prices
@@ -34,11 +47,12 @@ export class OrderService {
       }
 
       const unitPrice = variant.price
-      const totalPrice = unitPrice * item.quantity
-      subtotal += Number(totalPrice)
+      const totalPrice = Number(unitPrice) * item.quantity
+      subtotal += totalPrice
 
       orderItems.push({
         variantId: variant.id,
+        productId: variant.productId,
         productName: variant.product.name,
         variantName: `${variant.size} - ${variant.color}`,
         quantity: item.quantity,
@@ -93,6 +107,94 @@ export class OrderService {
     return order
   }
 
+  // Create a PAID order directly from a captured PayPal payment.
+  // Shipping fields come from PayPal's capture response (GET_FROM_FILE), so
+  // the frontend does not need to collect them separately.
+  async createPaidOrderFromPaypal(input: PaypalOrderInput) {
+    const variantIds = input.items.map((item) => item.variantId)
+    const variants = await prisma.productVariant.findMany({
+      where: { id: { in: variantIds } },
+      include: { product: true },
+    })
+
+    if (variants.length !== input.items.length) {
+      throw new ValidationError('Some variants do not exist')
+    }
+
+    let subtotal = 0
+    const orderItems: Array<{
+      variantId: string
+      productId: string
+      productName: string
+      variantName: string
+      quantity: number
+      unitPrice: number | string
+      totalPrice: number
+    }> = []
+
+    for (const item of input.items) {
+      const variant = variants.find((v) => v.id === item.variantId)
+      if (!variant) continue
+
+      if (variant.quantity < item.quantity) {
+        throw new ValidationError(`Insufficient stock for variant ${variant.sku}`)
+      }
+
+      const unitPrice = variant.price
+      const totalPrice = Number(unitPrice) * item.quantity
+      subtotal += totalPrice
+
+      orderItems.push({
+        variantId: variant.id,
+        productId: variant.productId,
+        productName: variant.product.name,
+        variantName: `${variant.size} - ${variant.color}`,
+        quantity: item.quantity,
+        unitPrice: Number(unitPrice),
+        totalPrice,
+      })
+    }
+
+    const orderNumber = generateOrderNumber()
+
+    const order = await prisma.order.create({
+      data: {
+        orderNumber,
+        userId: input.userId,
+        status: 'CONFIRMED',
+        paymentStatus: 'PAID',
+        paymentMethod: 'PAYPAL',
+        subtotal,
+        shippingFee: 0,
+        total: subtotal,
+        shippingFirstName: input.shippingFirstName,
+        shippingLastName: input.shippingLastName,
+        shippingPhone: input.shippingPhone,
+        shippingAddress: input.shippingAddress,
+        shippingCity: input.shippingCity,
+        shippingCountry: input.shippingCountry,
+        paypalCaptureId: input.paypalCaptureId,
+        notes: input.notes,
+        items: {
+          create: orderItems,
+        },
+      },
+      include: {
+        items: true,
+        user: { select: { id: true, email: true, firstName: true, lastName: true } },
+      },
+    })
+
+    for (const item of input.items) {
+      await prisma.productVariant.update({
+        where: { id: item.variantId },
+        data: { quantity: { decrement: item.quantity } },
+      })
+    }
+
+    return order
+  }
+
   async getOrders(userId: string, filters: OrderFilters) {
     const { status, page, limit } = filters
 
@@ -127,7 +229,21 @@ export class OrderService {
     const order = await prisma.order.findUnique({
       where: { orderNumber },
       include: {
-        items: true,
+        items: {
+          include: {
+            product: {
+              select: {
+                slug: true,
+                image: true,
+                images: {
+                  where: { isPrimary: true },
+                  select: { publicUrl: true, url: true },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
         user: { select: { id: true, email: true, firstName: true, lastName: true } },
       },
     })
@@ -136,12 +252,25 @@ export class OrderService {
       throw new NotFoundError('Order')
     }
 
-    // Check ownership
-    if (order.userId && order.userId !== userId) {
+    // Strict ownership: must belong to the requesting user. Guest orders (userId: null)
+    // are not viewable through this authenticated endpoint — they need the public
+    // tracking flow. Prevents authenticated user A from viewing guest orders by guessing
+    // an orderNumber.
+    if (order.userId !== userId) {
       throw new NotFoundError('Order')
     }
 
-    return order
+    // Resolve productImage (priority: primary image publicUrl > url > product.image > null) + expose productSlug
+    const items = order.items.map((item) => {
+      const { product, ...rest } = item as typeof item & {
+        product: { slug: string; image: string | null; images: { publicUrl: string | null; url: string | null }[] }
+      }
+      const primary = product.images[0]
+      const productImage: string | null = primary?.publicUrl || primary?.url || product.image || null
+      return { ...rest, productImage, productSlug: product.slug }
+    })
+
+    return { ...order, items }
   }
 
   async updateOrderStatus(orderId: string, input: UpdateOrderStatusInput) {
@@ -165,8 +294,8 @@ export class OrderService {
       throw new NotFoundError('Order')
     }
 
-    // Check ownership
-    if (order.userId && order.userId !== userId) {
+    // Strict ownership — same rationale as getOrderByNumber.
+    if (order.userId !== userId) {
       throw new NotFoundError('Order')
     }
 

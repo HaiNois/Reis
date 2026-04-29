@@ -27,6 +27,7 @@ export interface Product {
   careGuide?: string
   careGuideEn?: string
   price: number
+  priceUsd?: number | null
   compareAtPrice?: number
   image?: string // Legacy - deprecated, use images instead
   status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED'
@@ -48,6 +49,7 @@ export interface ProductVariant {
   color: string
   price: number
   salePrice?: number
+  priceUsd?: number | null
   quantity: number
   isActive: boolean
 }

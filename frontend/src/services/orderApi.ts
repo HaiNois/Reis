@@ -4,11 +4,14 @@ import api from './api'
 export interface OrderItem {
   id: string
   variantId: string
+  productId?: string
   productName: string
   variantName: string
   quantity: number
   unitPrice: number
   totalPrice: number
+  productImage?: string | null
+  productSlug?: string
 }
 
 export interface Order {
@@ -24,9 +27,8 @@ export interface Order {
   shippingLastName: string
   shippingPhone: string
   shippingAddress: string
-  shippingWard: string
-  shippingDistrict: string
-  shippingProvince: string
+  shippingCity: string
+  shippingCountry: string
   notes?: string
   items: OrderItem[]
   createdAt: string
@@ -68,9 +70,8 @@ export const orderApi = {
     shippingLastName: string
     shippingPhone: string
     shippingAddress: string
-    shippingWard: string
-    shippingDistrict: string
-    shippingProvince: string
+    shippingCity: string
+    shippingCountry: string
     notes?: string
   }) => {
     const response = await api.post('/orders', data)

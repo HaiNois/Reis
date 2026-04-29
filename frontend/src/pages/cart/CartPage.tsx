@@ -1,10 +1,18 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Lock } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
+import { useAuthStore } from '@/stores/authStore'
+import { usePrice } from '@/hooks/usePrice'
 
 export default function CartPage() {
   const { t } = useTranslation()
-  const { items, updateQuantity, removeItem, getTotal } = useCartStore()
+  const fmt = usePrice()
+  const { items, updateQuantity, removeItem, getTotal, getTotalUsd } = useCartStore()
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const checkoutHref = isAuthenticated
+    ? '/checkout'
+    : `/login?redirect=${encodeURIComponent('/checkout')}`
 
   if (items.length === 0) {
     return (
@@ -31,7 +39,7 @@ export default function CartPage() {
               <div className="flex-1">
                 <h3 className="font-medium mb-1">{item.productName}</h3>
                 <p className="text-sm text-primary-500 mb-2">{item.variantName}</p>
-                <p className="text-primary-900">{item.price.toLocaleString('vi-VN')} ₫</p>
+                <p className="text-primary-900">{fmt(item.price, item.priceUsd)}</p>
               </div>
               <div className="flex flex-col items-end gap-4">
                 <button
@@ -66,7 +74,7 @@ export default function CartPage() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span>{t('cart.subtotal')}</span>
-              <span>{getTotal().toLocaleString('vi-VN')} ₫</span>
+              <span>{fmt(getTotal(), getTotalUsd())}</span>
             </div>
             <div className="flex justify-between">
               <span>{t('cart.shipping')}</span>
@@ -74,11 +82,19 @@ export default function CartPage() {
             </div>
             <div className="border-t border-primary-200 pt-2 flex justify-between font-medium">
               <span>{t('cart.total')}</span>
-              <span>{getTotal().toLocaleString('vi-VN')} ₫</span>
+              <span>{fmt(getTotal(), getTotalUsd())}</span>
             </div>
           </div>
-          <Link to="/checkout" className="btn btn-primary w-full mt-6">
-            {t('cart.checkout')}
+          <Link
+            to={checkoutHref}
+            className="btn btn-primary w-full mt-6 inline-flex items-center justify-center gap-2"
+          >
+            {!isAuthenticated && (
+              <Lock className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
+            )}
+            <span>
+              {isAuthenticated ? t('cart.checkout') : t('auth.loginToCheckout')}
+            </span>
           </Link>
         </div>
       </div>

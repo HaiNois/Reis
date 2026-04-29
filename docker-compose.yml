@@ -1,24 +1,50 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: reis-postgres
+  # NOTE: old postgres service kept here (commented) so the postgres_data volume
+  # remains as a rollback window. Do NOT remove this until the MySQL migration
+  # has been verified in production.
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: reis-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: reis
+  #     POSTGRES_PASSWORD: reis123
+  #     POSTGRES_DB: reis_db
+  #   ports:
+  #     - "5434:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U reis -d reis_db"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  mysql:
+    image: mysql:8.0
+    container_name: reis-mysql
     restart: unless-stopped
     environment:
-      POSTGRES_USER: reis
-      POSTGRES_PASSWORD: reis123
-      POSTGRES_DB: reis_db
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: reis_db
+      MYSQL_USER: reis
+      MYSQL_PASSWORD: reis123
     ports:
-      - "5434:5432"
+      - "3307:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
+    command:
+      - --default-authentication-plugin=caching_sha2_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U reis -d reis_db"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "reis", "-preis123"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
 volumes:
   postgres_data:
+    driver: local
+  mysql_data:
     driver: local

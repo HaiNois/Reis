@@ -92,6 +92,15 @@ export default {
           from: { opacity: "0", transform: "scale(0.9)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
+        // Announcement bar animations
+        "marquee": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        "announcement-fade": {
+          "0%": { opacity: "0", transform: "translateY(4px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -102,6 +111,8 @@ export default {
         "zoom-in": "zoom-in 0.4s ease-out forwards",
         "slide-down": "slide-down 1.5s ease-in-out infinite",
         "scale-in": "scale-in 0.5s ease-out forwards",
+        "marquee": "marquee 30s linear infinite",
+        "announcement-fade": "announcement-fade 500ms ease-out",
       },
     },
   },

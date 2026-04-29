@@ -42,7 +42,18 @@ export const envSchema = z.object({
   PAYPAL_CLIENT_ID: z.string().default(''),
   PAYPAL_CLIENT_SECRET: z.string().default(''),
   PAYPAL_WEBHOOK_ID: z.string().default(''),
-})
+}).refine(
+  (data) => {
+    // In production, PayPal credentials + webhook ID are required for secure operation.
+    if (data.NODE_ENV !== 'production') return true
+    return Boolean(data.PAYPAL_CLIENT_ID && data.PAYPAL_CLIENT_SECRET && data.PAYPAL_WEBHOOK_ID)
+  },
+  {
+    message:
+      'PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, and PAYPAL_WEBHOOK_ID are required when NODE_ENV=production',
+    path: ['PAYPAL_WEBHOOK_ID'],
+  }
+)
 
 export type Env = z.infer<typeof envSchema>
 

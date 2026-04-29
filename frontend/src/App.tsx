@@ -20,11 +20,13 @@ import ProductsPage from './pages/admin/ProductsPage'
 import ProductDetailPage from './pages/admin/ProductDetailPage'
 import CategoriesPage from './pages/admin/CategoriesPage'
 import OrdersPage from './pages/admin/OrdersPage'
-import BannersPage from './pages/admin/BannersPage'
+import UsersPage from './pages/admin/UsersPage'
 import HomepageSectionsPage from './pages/admin/HomepageSectionsPage'
 import SectionFormPage from './pages/admin/SectionFormPage'
 import FeedbackPage from './pages/admin/FeedbackPage'
 import CollectionsPage from './pages/admin/CollectionsPage'
+import AnnouncementBarPage from './pages/admin/AnnouncementBarPage'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 import { Toaster } from '@/components/ui/toaster'
 import { ConfirmProvider } from './components/providers/confirm-provider'
 
@@ -41,13 +43,15 @@ function App() {
           <Route path="collections/:slug" element={<CatalogPage />} />
           <Route path="search" element={<CatalogPage />} />
           <Route path="cart" element={<CartPage />} />
-          <Route path="checkout" element={<CheckoutPage />} />
-          <Route path="checkout/success" element={<SuccessPage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="checkout" element={<CheckoutPage />} />
+            <Route path="checkout/success" element={<SuccessPage />} />
+            <Route path="account" element={<ProfilePage />} />
+            <Route path="account/orders" element={<OrderHistoryPage />} />
+            <Route path="account/orders/:orderNumber" element={<OrderDetailPage />} />
+          </Route>
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
-          <Route path="account" element={<ProfilePage />} />
-          <Route path="account/orders" element={<OrderHistoryPage />} />
-          <Route path="account/orders/:orderNumber" element={<OrderDetailPage />} />
           <Route path="track" element={<OrderTrackingPage />} />
           <Route path="coming-soon" element={<ComingSoonPage />} />
           <Route path="*" element={<NotFoundPage />} />
@@ -61,11 +65,12 @@ function App() {
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="collections" element={<CollectionsPage />} />
           <Route path="orders" element={<OrdersPage />} />
-          <Route path="banners" element={<BannersPage />} />
+          <Route path="users" element={<UsersPage />} />
           <Route path="homepage-sections" element={<HomepageSectionsPage />} />
           <Route path="homepage-sections/new" element={<SectionFormPage />} />
           <Route path="homepage-sections/:id/edit" element={<SectionFormPage />} />
           <Route path="feedback" element={<FeedbackPage />} />
+          <Route path="announcement-bar" element={<AnnouncementBarPage />} />
         </Route>
       </Routes>
       <Toaster />

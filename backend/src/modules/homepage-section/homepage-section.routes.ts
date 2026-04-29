@@ -5,6 +5,8 @@ import { authenticate, requireAdmin } from '../../shared/middlewares/auth.js'
 const router = Router()
 
 // Admin routes - /api/v1/admin/homepage-sections
+// IMPORTANT: /sort must come before /:id to avoid being caught by the param route
+router.patch('/sort', authenticate, requireAdmin, homepageSectionController.reorderSections)
 router.get('/', authenticate, requireAdmin, homepageSectionController.getSections)
 router.get('/:id', authenticate, requireAdmin, homepageSectionController.getSectionById)
 router.post('/', authenticate, requireAdmin, homepageSectionController.createSection)
@@ -18,6 +20,7 @@ router.delete('/:id/products/:productId', authenticate, requireAdmin, homepageSe
 
 // Admin - Item management in section
 router.get('/:id/items', authenticate, requireAdmin, homepageSectionController.getItems)
+router.put('/:id/items', authenticate, requireAdmin, homepageSectionController.syncItems)
 router.post('/:id/items', authenticate, requireAdmin, homepageSectionController.createItem)
 router.patch('/:id/items/sort', authenticate, requireAdmin, homepageSectionController.reorderItems)
 router.patch('/:id/items/:itemId', authenticate, requireAdmin, homepageSectionController.updateItem)

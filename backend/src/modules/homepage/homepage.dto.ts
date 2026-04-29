@@ -19,7 +19,6 @@ export type CarouselConfig = z.infer<typeof carouselConfigSchema>
 
 export const createHomepageSectionSchema = z.object({
   sectionType: z.enum([
-    'ANNOUNCEMENT_BAR',
     'HERO',
     'PRODUCT_RAIL',
     'MEDIA_TILES',
@@ -48,7 +47,7 @@ export const reorderSectionsSchema = z.object({
 // ==================== ITEM SCHEMAS ====================
 
 export const createHomepageItemSchema = z.object({
-  itemType: z.enum(['ANNOUNCEMENT', 'MEDIA_TILE', 'FOOTER_LINK']),
+  itemType: z.enum(['MEDIA_TILE', 'PRODUCT', 'COLLECTION', 'BANNER']),
   title: z.string().max(200),
   subtitle: z.string().max(300).optional(),
   description: z.string().max(2000).optional(),
