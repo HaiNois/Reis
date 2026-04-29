@@ -5,3 +5,5 @@ nodejs_version: 20.x
 install_command: npm ci --include=dev
 build_command: npm run build
 output_dir: dist
+entry_file: dist/index.js
+start_command: node dist/index.js
